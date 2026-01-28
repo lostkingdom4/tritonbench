@@ -20,7 +20,7 @@ from dataclasses import asdict, dataclass, fields
 from enum import Enum
 from numbers import Number
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Type, Union
 
 import psutil
 import tabulate
@@ -53,6 +53,7 @@ from tritonbench.utils.env_utils import (
 from tritonbench.utils.input import input_cast
 from tritonbench.utils.parser import get_parser
 from tritonbench.utils.path_utils import add_cmd_parameter, remove_cmd_parameter
+from tritonbench.utils.plugin_utils import load_plugin
 
 if is_hip():
     from tritonbench.components.att import launch_att
@@ -614,6 +615,7 @@ def register_benchmark(
     fwd_only: bool = False,
     label: Optional[str] = None,
     tags: Optional[List[str]] = None,
+    cls: Optional[Type] = None,
 ):
     def decorator(function):
         op_name = (
@@ -639,6 +641,9 @@ def register_benchmark(
         def _inner(self, *args, **kwargs):
             return function(self, *args, **kwargs)
 
+        if cls:
+            assert fn_name, "func_name must be provided when using class."
+            setattr(cls, fn_name, _inner)
         return _inner
 
     return decorator
@@ -734,6 +739,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     ):
         set_env()
         set_random_seed()
+        if tb_args.plugin:
+            load_plugin(tb_args.plugin)
         if extra_args and not tb_args:
             tb_args, extra_args = override_args(extra_args)
         elif not tb_args:
@@ -902,7 +909,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     def _get_bm_func(self, bm_func_name: str):
         fwd_fn_lambda = getattr(self, bm_func_name, None)
         assert callable(fwd_fn_lambda), (
-            f"Could not find benchmark {bm_func_name} registered in {self.name}. "
+            f"Could not find benchmark {bm_func_name} registered in {self.name}. type is {type(getattr(self, bm_func_name, None))} "
             f"Available benchmarks: {REGISTERED_BENCHMARKS[self.name].keys()}. "
         )
         with TimerContext(enabled=logger.level <= logging.INFO) as timer:
