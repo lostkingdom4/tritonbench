@@ -190,6 +190,21 @@ def get_parser(args=None):
         "--baseline", type=str, default=None, help="Override default baseline."
     )
     parser.add_argument(
+        "--agentic-capture",
+        action="store_true",
+        help="Enable agentic capture mode (reuses --op/--only/--skip filters).",
+    )
+    parser.add_argument(
+        "--agentic-generate",
+        action="store_true",
+        help="Enable agentic generation mode (reuses --op/--only/--skip filters).",
+    )
+    parser.add_argument(
+        "--agentic-validate",
+        action="store_true",
+        help="Enable agentic validation mode (reuses --op/--only/--skip filters).",
+    )
+    parser.add_argument(
         "--num-inputs",
         type=int,
         help="Number of example inputs.",

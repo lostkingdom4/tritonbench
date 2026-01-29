@@ -23,3 +23,6 @@ autotuner.log
 .venv/
 .install/
 .venvs/
+irs/
+extract/
+agentic/

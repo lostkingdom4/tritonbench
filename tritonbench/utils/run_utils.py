@@ -145,6 +145,12 @@ def tritonbench_run(args: Optional[List[str]] = None):
     parser = get_parser()
     args, extra_args = parser.parse_known_args(args)
 
+    agentic_enabled = (
+        getattr(args, "agentic_capture", False)
+        or getattr(args, "agentic_generate", False)
+        or getattr(args, "agentic_validate", False)
+    )
+
     tritonparse_init(args.tritonparse)
 
     if args.device == "mtia":
@@ -202,7 +208,7 @@ def tritonbench_run(args: Optional[List[str]] = None):
     else:
         # Normal mode
         # Force isolation in subprocess if testing more than one op.
-        if len(ops) >= 2:
+        if len(ops) >= 2 or agentic_enabled:
             args.isolate = True
 
         with gpu_lockdown(args.gpu_lockdown):
