@@ -4,6 +4,7 @@ import csv
 import functools
 import hashlib
 import json
+import inspect
 import logging
 import os
 import random
@@ -52,6 +53,11 @@ from tritonbench.utils.env_utils import (
 )
 from tritonbench.utils.input import input_cast
 from tritonbench.utils.parser import get_parser
+from tritonbench.utils.path_utils import (
+    add_cmd_parameter,
+    remove_cmd_parameter,
+    REPO_PATH,
+)
 from tritonbench.utils.path_utils import add_cmd_parameter, remove_cmd_parameter
 from tritonbench.utils.plugin_utils import load_plugin
 
@@ -760,6 +766,13 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         self.use_cuda_graphs = (
             self.tb_args.cudagraph if self.tb_args.cudagraph else self.use_cuda_graphs
         )
+        self.agentic_mode = None
+        if getattr(self.tb_args, "agentic_capture", False):
+            self.agentic_mode = "capture"
+        elif getattr(self.tb_args, "agentic_generate", False):
+            self.agentic_mode = "generate"
+        elif getattr(self.tb_args, "agentic_validate", False):
+            self.agentic_mode = "validate"
         _translate_mode(self.tb_args)
         if self.tb_args.mode == "fwd":
             self.mode = Mode.FWD
@@ -1180,6 +1193,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 y_vals: Dict[str, BenchmarkOperatorMetrics] = functools.reduce(
                     _reduce_benchmarks, benchmarks, {}
                 )
+                if self.agentic_mode:
+                    self._agentic_post_input(input_id=input_id, y_vals=y_vals)
                 metrics.append((x_val, y_vals))
                 logger.warning(
                     f"Completed input ID {input_id}:\n{table}",
@@ -2025,10 +2040,206 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 raise
             metrics.error_msg = str(e)
 
+        if self.agentic_mode:
+            self._agentic_post_benchmark(
+                input_id=input_id,
+                fn_name=fn_name,
+                metrics=metrics,
+                baseline=baseline,
+            )
         if self.benchmark_post_hook:
             self.benchmark_post_hook(fn_name, metrics)
 
         return metrics
+
+    def _agentic_post_benchmark(
+        self,
+        input_id: int,
+        fn_name: str,
+        metrics: BenchmarkOperatorMetrics,
+        baseline: bool,
+    ) -> None:
+        """Agentic hook invoked after each benchmark.
+
+        Default implementation is a no-op; subclasses or future wiring can
+        implement capture/generate/validate flows without altering existing
+        benchmark behavior.
+        """
+        if self.agentic_mode not in {"capture", "generate"}:
+            return None
+
+        artifact_dir = self._agentic_benchmark_dir(input_id, fn_name)
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+
+        # Best-effort kernel source capture (raw Triton kernel text)
+        kernel_src_path = artifact_dir / "kernel_source.py"
+        try:
+            kernel_fn = self._get_bm_func(fn_name)
+            source_text = inspect.getsource(kernel_fn)
+            kernel_src_path.write_text(source_text)
+        except Exception:
+            kernel_src_path = None
+
+        # Collect IR artifacts (TTIR/TTGIR/LLIR/PTX) into a dedicated folder
+        ir_dir = artifact_dir / "ir"
+        try:
+            self.dump_ir(input_id, self._get_bm_func(fn_name), ir_dir)
+        except Exception as e:
+            logger.warning("Agentic capture: failed to dump IR for %s: %s", fn_name, e)
+
+        manifest = {
+            "manifest_version": 1,
+            "agentic_mode": self.agentic_mode,
+            "op": self.name,
+            "benchmark_name": self.benchmark_name,
+            "fn_name": fn_name,
+            "baseline": baseline,
+            "input_id": input_id,
+            "device": self.device,
+            "precision": self.precision,
+            "dtype": str(self.dtype) if self.dtype else None,
+            "shapes": self._agentic_input_summary(self.example_inputs),
+            "metrics": self._agentic_metrics_summary(metrics),
+            "paths": {
+                "artifact_dir": str(artifact_dir),
+                "ir_dir": str(ir_dir),
+                "kernel_source": str(kernel_src_path) if kernel_src_path else None,
+            },
+        }
+
+        self._agentic_write_json(artifact_dir / "manifest.json", manifest)
+        return None
+
+    def _agentic_post_input(
+        self, input_id: int, y_vals: Dict[str, BenchmarkOperatorMetrics]
+    ) -> None:
+        """Agentic hook invoked after all benchmarks for an input.
+
+        Default implementation is a no-op; subclasses or future wiring can
+        implement capture/generate/validate flows without altering existing
+        benchmark behavior.
+        """
+        if self.agentic_mode == "generate":
+            self._agentic_emit_generate_request(input_id, y_vals)
+        if self.agentic_mode == "validate":
+            self._agentic_validate(input_id, y_vals)
+        return None
+
+    def _agentic_benchmark_dir(self, input_id: int, fn_name: str) -> Path:
+        return (
+            REPO_PATH
+            / ".benchmarks"
+            / "agentic"
+            / self.name
+            / f"input_{input_id}"
+            / fn_name
+        )
+
+    def _agentic_input_summary(self, inputs: Any) -> Any:
+        def _summarize(x):
+            if isinstance(x, torch.Tensor):
+                return {
+                    "shape": list(x.shape),
+                    "dtype": str(x.dtype),
+                    "device": str(x.device),
+                }
+            return x
+
+        try:
+            return tree_map(_summarize, inputs)
+        except Exception:
+            return None
+
+    def _agentic_metrics_summary(self, metrics: BenchmarkOperatorMetrics) -> Dict[str, Any]:
+        latency = metrics.latency
+        return {
+            "latency_ms": latency.p50 if latency else None,
+            "latency_min_ms": latency.min if latency else None,
+            "latency_max_ms": latency.max if latency else None,
+            "tflops": metrics.tflops,
+            "speedup": metrics.speedup,
+            "accuracy": metrics.accuracy,
+            "determinism": metrics.determinism.value if metrics.determinism else None,
+            "compile_time_ms": metrics.compile_time,
+            "gpu_peak_mem": metrics.gpu_peak_mem,
+            "cpu_peak_mem": metrics.cpu_peak_mem,
+            "extra_metrics": metrics.extra_metrics,
+            "error_msg": metrics.error_msg,
+        }
+
+    def _agentic_emit_generate_request(
+        self, input_id: int, y_vals: Dict[str, BenchmarkOperatorMetrics]
+    ) -> None:
+        baseline_name = BASELINE_BENCHMARKS.get(self.name)
+        if not baseline_name:
+            baseline_name = next(iter(y_vals.keys()), None)
+        if not baseline_name:
+            return None
+
+        artifact_dir = self._agentic_benchmark_dir(input_id, baseline_name)
+        manifest_path = artifact_dir / "manifest.json"
+        request = {
+            "request_version": 1,
+            "agentic_mode": "generate",
+            "op": self.name,
+            "fn_name": baseline_name,
+            "input_id": input_id,
+            "manifest": str(manifest_path),
+        }
+        self._agentic_write_json(artifact_dir / "generate_request.json", request)
+        return None
+
+    def _agentic_validate(
+        self, input_id: int, y_vals: Dict[str, BenchmarkOperatorMetrics]
+    ) -> None:
+        baseline_name = BASELINE_BENCHMARKS.get(self.name)
+        if not baseline_name:
+            baseline_name = next(iter(y_vals.keys()), None)
+        if not baseline_name:
+            return None
+
+        baseline_metrics = y_vals.get(baseline_name)
+        baseline_latency = (
+            baseline_metrics.latency.p50 if baseline_metrics and baseline_metrics.latency else None
+        )
+
+        artifact_dir = self._agentic_benchmark_dir(input_id, baseline_name)
+        generated_metrics_path = artifact_dir / "generated" / "metrics.json"
+
+        status = "missing-generated"
+        generated_latency = None
+        if generated_metrics_path.is_file():
+            try:
+                with open(generated_metrics_path) as fp:
+                    data = json.load(fp)
+                generated_latency = data.get("latency_ms")
+            except Exception:
+                status = "invalid-generated"
+
+        if generated_latency is not None and baseline_latency is not None:
+            status = "pass" if generated_latency <= baseline_latency else "slower"
+            speedup = baseline_latency / generated_latency if generated_latency else None
+        else:
+            speedup = None
+
+        validate = {
+            "validate_version": 1,
+            "agentic_mode": "validate",
+            "op": self.name,
+            "fn_name": baseline_name,
+            "input_id": input_id,
+            "baseline_latency_ms": baseline_latency,
+            "generated_latency_ms": generated_latency,
+            "speedup": speedup,
+            "status": status,
+            "generated_metrics_path": str(generated_metrics_path),
+        }
+        self._agentic_write_json(artifact_dir / "validate.json", validate)
+        return None
+
+    def _agentic_write_json(self, path: Path, payload: Dict[str, Any]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2))
 
     def do_bench_cudagraph_mem(
         self, fn, n_repeat=2, grad_to_none=None, device_type="cuda"
@@ -2465,6 +2676,28 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 sass = get_sass(kernel.asm["cubin"])
                 with open(ir_dir / f"{kernel.name}_k{kid}_x{input_id}.sass", "w") as f:
                     f.write(sass)
+
+            # Copy metadata JSON from Triton cache
+            if hasattr(kernel, 'metadata'):
+                try:
+                    import shutil
+                    # Find metadata file in Triton cache
+                    cache_dir = Path.home() / ".triton" / "cache"
+                    kernel_hash = kernel.metadata.hash if hasattr(kernel.metadata, 'hash') else None
+
+                    if kernel_hash and cache_dir.exists():
+                        # Search for metadata JSON in cache
+                        for cache_subdir in cache_dir.iterdir():
+                            if cache_subdir.is_dir():
+                                metadata_file = cache_subdir / f"{kernel.name}.json"
+                                if metadata_file.exists():
+                                    # Copy metadata alongside TTGIR
+                                    dest_file = ir_dir / f"{kernel.name}_k{kid}_input_x{input_id}.json"
+                                    shutil.copy(metadata_file, dest_file)
+                                    logger.info(f"Copied metadata to {dest_file}")
+                                    break
+                except Exception as e:
+                    logger.warning(f"Failed to copy metadata for {kernel.name}: {e}")
 
     @classmethod
     def has_metric(cls, metric_name: str) -> bool:
