@@ -8,7 +8,6 @@ from typing import Any, Callable, Generator, List, Optional, Tuple
 import torch
 import torch._inductor.config as inductor_config
 import triton
-
 from tritonbench.operators.gemm.kernels import matmul as kernels
 from tritonbench.operators.gemm.partition_k import (
     matmul_partition_k as matmul_partition_k_kernel,
@@ -45,9 +44,7 @@ from tritonbench.utils.env_utils import (
     is_fbcode,
     supports_tma,
 )
-
 from tritonbench.utils.path_utils import REPO_PATH
-
 from tritonbench.utils.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
@@ -71,20 +68,22 @@ from tritonbench.operators.gemm.triton_matmul import (
     matmul as triton_tutorial_matmul_kernel,
 )
 
+HAS_HAMMER = False
 if is_fbcode():
-    import generative_recommenders.ops.triton.triton_addmm as hstu_triton_addmm
+    try:
+        import generative_recommenders.ops.triton.triton_addmm as hstu_triton_addmm
 
-    # without this set we can only pick a single config for AMD, Nvidia has 8
-    # with this set AMD will pick from 256 different configs (not the actual full
-    # tuning space, so some perf may be left on the table)
-    hstu_triton_addmm.ENABLE_FULL_TURNING_SPACE = True
-    from hammer.ops.triton.triton_matmul import (
-        triton_matmul as hstu_triton_matmul_kernel,
-    )
+        # without this set we can only pick a single config for AMD, Nvidia has 8
+        # with this set AMD will pick from 256 different configs (not the actual full
+        # tuning space, so some perf may be left on the table)
+        hstu_triton_addmm.ENABLE_FULL_TURNING_SPACE = True
+        from hammer.ops.triton.triton_matmul import (
+            triton_matmul as hstu_triton_matmul_kernel,
+        )
 
-    HAS_HAMMER = True
-else:
-    HAS_HAMMER = False
+        HAS_HAMMER = True
+    except ImportError:
+        pass
 
 with try_import("HAS_CUTLASS_API"):
     import cutlass_api
@@ -95,18 +94,17 @@ with try_import("HAS_CUTLASS_API"):
     )
 
 BUILDIN_SHAPES = [
-    (8192, 8192, 512, None),
-    (8192, 8192, 1024, None),
-    (8192, 8192, 2048, None),
+    # (8192, 8192, 1024, None),
+    # (8192, 8192, 2048, None),
     (8192, 8192, 4096, None),
     (8192, 8192, 8192, None),
     (8192, 8192, 16384, None),
-    (1000000, 512, 512, None),
-    (1000000, 768, 512, None),
-    (1000000, 768, 256, None),
-    (2000000, 512, 512, None),
-    (2000000, 768, 512, None),
-    (2000000, 768, 256, None),
+    # (1000000, 512, 512, None),
+    # (1000000, 768, 512, None),
+    # (1000000, 768, 256, None),
+    # (2000000, 512, 512, None),
+    # (2000000, 768, 512, None),
+    # (2000000, 768, 256, None),
 ]
 
 SPLIT_K_SHAPES = [
@@ -241,6 +239,17 @@ class Operator(BenchmarkOperator):
         if self.use_buffer_ops and torch.version.hip is None:
             raise ValueError("Buffer ops are only supported on AMD GPUs.")
 
+        # Set dtype-aware default tolerances for accuracy checking
+        # fp16/bf16 have larger machine epsilon and accumulate more error in GEMMs
+        if self.tb_args.rtol is None:
+            self.tb_args.rtol = (
+                1e-1 if self.dtype in [torch.float16, torch.bfloat16] else 1e-3
+            )
+        if self.tb_args.atol is None:
+            self.tb_args.atol = (
+                1e-2 if self.dtype in [torch.float16, torch.bfloat16] else 1e-5
+            )
+
     @register_benchmark()
     def triton_tutorial_matmul(self, a, b, bias) -> Callable:
         if bias is not None:
@@ -365,6 +374,36 @@ class Operator(BenchmarkOperator):
                 f = lambda a, b: a.matmul(b)
             compiled = torch.compile(f, dynamic=False)
             compiled(a, b)
+
+        return lambda: compiled(a, b)
+
+    @register_benchmark(enabled=supports_tma())
+    def pt2_matmul_maxautotune_tma_only(self, a, b, bias) -> Callable:
+        from torch._inductor.template_heuristics.triton import (
+            CUDAMMTemplateConfigHeuristic,
+        )
+
+        torch._dynamo.reset()
+
+        mm_heuristic = CUDAMMTemplateConfigHeuristic()
+
+        original_mm_configs = mm_heuristic.mm_configs
+        mm_heuristic.mm_configs = []
+
+        try:
+            with inductor_config.patch(
+                max_autotune=True,
+                max_autotune_gemm_backends="TRITON",
+                autotune_num_choices_displayed=self.inductor_autotune_num_choices_displayed,
+            ):
+                if bias is not None:
+                    f = lambda a, b: a.matmul(b) + bias
+                else:
+                    f = lambda a, b: a.matmul(b)
+                compiled = torch.compile(f, dynamic=False)
+                compiled(a, b)
+        finally:
+            mm_heuristic.mm_configs = original_mm_configs
 
         return lambda: compiled(a, b)
 
@@ -602,12 +641,12 @@ class Operator(BenchmarkOperator):
             return out
 
         @register_benchmark(enabled=False)
-        def pt2_cutlass_api_matmul(self, a, b, bias) -> Callable:
+        def pt2_nvgemm_matmul(self, a, b, bias) -> Callable:
             assert bias is None, "Cutlass API gemm does not currently support bias"
             torch._dynamo.reset()
             with inductor_config.patch(
                 max_autotune=True,
-                max_autotune_gemm_backends="CUTEDSL",
+                max_autotune_gemm_backends="NVGEMM",
                 autotune_fallback_to_aten=False,
                 autotune_num_choices_displayed=self.inductor_autotune_num_choices_displayed,
             ):
@@ -635,7 +674,7 @@ class Operator(BenchmarkOperator):
         return numel / metrics.latency * 1e3
 
     @register_metric()
-    def tflops(
+    def flops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
     ) -> float:
         a, w, bias = example_inputs
@@ -645,7 +684,7 @@ class Operator(BenchmarkOperator):
             flops = m * k * 2 * n + 2 * m * n
         else:
             flops = m * k * 2 * n
-        return flops / metrics.latency / 1e12 * 1e3
+        return flops
 
     @staticmethod
     def _scaled_randn(*args, scale: float, **kwargs) -> torch.Tensor:

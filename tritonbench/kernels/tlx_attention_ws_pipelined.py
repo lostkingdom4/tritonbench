@@ -1,5 +1,4 @@
 import torch
-
 import triton
 import triton.language as tl
 import triton.language.extra.tlx as tlx
@@ -1131,8 +1130,8 @@ def _attn_fwd_ws_persistent(
                     # Use l[1]/l[1+BLOCK_N] and m[2][2 + BLOCK_N]
                     # to disambigulate from alpha[0]/alpha[BLOCK_N]
                     l = tlx.local_load(l_tiles[cid * BLOCK_N + 1])
-                    tlx.barrier_arrive(qk_empties[cid])
                     m = tlx.local_load(m_tiles[cid * BLOCK_N + 2])
+                    tlx.barrier_arrive(qk_empties[cid])
                     m += tl.math.log2(l)
                     offs_m = (
                         start_m * BLOCK_M

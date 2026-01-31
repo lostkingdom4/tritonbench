@@ -275,7 +275,7 @@ def get_parser(args=None):
     parser.add_argument(
         "--latency-measure-mode",
         default="triton_do_bench",
-        choices=["triton_do_bench", "inductor_benchmarker", "profiler"],
+        choices=["triton_do_bench", "inductor_benchmarker", "profiler", "gpu_events"],
         help="Method to measure latency: triton_do_bench (default), inductor_benchmarker, profiler.",
     )
     parser.add_argument(
@@ -391,6 +391,11 @@ def get_parser(args=None):
         action="store_true",
         help="Skip the L2 cache clearing during benchmarking",
     )
+    parser.add_argument(
+        "--plugin",
+        type=str,
+        help="Load plugin from a Python function. This is for loading backends at runtime.",
+    )
 
     if is_fbcode():
         parser.add_argument(
@@ -408,8 +413,8 @@ def get_parser(args=None):
         parser.add_argument(
             "--diode-version",
             type=str,
-            default="v4",
-            help="Version of diode to use. Default: v4",
+            default="recommended",
+            help="Version of diode to use. Default: recommended version in MODEL_CONFIGS (~/fbsource/fbcode/diode/torch_diode/models/triton_gemm/model.py)",
         )
         parser.add_argument(
             "--diode-topk",

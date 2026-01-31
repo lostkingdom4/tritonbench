@@ -1,26 +1,20 @@
 import argparse
-
 import logging
-
 from typing import Any, Callable, List, Optional
 
 import torch
 import torch._inductor.config as inductor_config
 import triton
-
 from torch._inductor.kernel.mm import scaling_pairs, ScalingType
-
 from tritonbench.data.llama import llama_shapes
 from tritonbench.operators.fp8_gemm.persistent import blackwell_persistent_tma
 from tritonbench.utils.env_utils import IS_BLACKWELL
-
 from tritonbench.utils.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
     register_benchmark,
     register_metric,
 )
-
 from tritonbench.utils.triton_utils import has_experimental_descriptor
 
 from .tutorial import matmul as tutorial_matmul
@@ -58,6 +52,12 @@ def parse_args(args):
     parser.add_argument("--n", type=int)
     parser.add_argument("--per-tensor-scale-a", type=float, default=None)
     parser.add_argument("--per-tensor-scale-b", type=float, default=None)
+    parser.add_argument(
+        "--template-filter-regex",
+        type=str,
+        default=".*",
+        help="Regex filter for PT2 Templates",
+    )
     return parser.parse_args(args)
 
 
@@ -249,9 +249,9 @@ class Operator(BenchmarkOperator):
 
     @register_benchmark(baseline=True)
     def torch_fp8_gemm(self, a, b, scale_a, scale_b):
-        assert (
-            not self.contains_blockwise_scaling or HAS_CUDA_129
-        ), "BlockWise scaling variants for scaled_gemm require CUDA 12.9+"
+        assert not self.contains_blockwise_scaling or HAS_CUDA_129, (
+            "BlockWise scaling variants for scaled_gemm require CUDA 12.9+"
+        )
 
         return lambda: torch._scaled_mm(
             a,
@@ -266,9 +266,12 @@ class Operator(BenchmarkOperator):
     def pt2_fp8_gemm(self, a, b, scale_a, scale_b) -> Callable:
         torch._dynamo.reset()
         with inductor_config.patch(
-            max_autotune=True,
-            max_autotune_gemm_backends="TRITON",
-            autotune_fallback_to_aten=False,
+            {
+                "max_autotune": True,
+                "max_autotune_gemm_backends": "TRITON",
+                "autotune_fallback_to_aten": False,
+                "test_configs.autotune_choice_name_regex": self.extra_args.template_filter_regex,
+            }
         ):
             f = lambda a, b: torch._scaled_mm(
                 a,

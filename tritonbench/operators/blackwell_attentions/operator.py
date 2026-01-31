@@ -10,16 +10,12 @@ import math
 import os
 from contextlib import nullcontext
 from functools import partial
-
 from typing import Callable, Optional, Tuple
 
 import torch
-
 from torch.nn.attention import sdpa_kernel, SDPBackend
 from torch.nn.functional import scaled_dot_product_attention as sdpa
-
 from tritonbench.kernels.attention_utils import SUPPORT_GLUON
-from tritonbench.kernels.blackwell_attention_utils import is_blackwell
 
 try:
     from tritonbench.kernels.blackwell_triton_fused_attention import (
@@ -54,11 +50,7 @@ logger = logging.getLogger(__name__)
 
 # [Optional] flash_attn v2
 try:
-    from flash_attn.flash_attn_interface import (
-        flash_attn_qkvpacked_func as flash_attn_func,
-    )
-
-    from ..flash_attention.test_fmha_utils import make_packed_qkv
+    from flash_attn.flash_attn_interface import flash_attn_func as flash_attn_func
 
     HAS_FLASH_V2 = True
 except (ImportError, IOError, AttributeError):
@@ -66,7 +58,9 @@ except (ImportError, IOError, AttributeError):
 
 # [Optional] CuTe
 try:
-    from flash_attn.cute.interface import flash_attn_func as facute_flash_attn_func
+    from mslk.attention.flash_attn.interface import (
+        flash_attn_func as facute_flash_attn_func,
+    )
 
     HAS_FLASH_CUTE = True
 except (ImportError, IOError, AttributeError):
@@ -78,17 +72,39 @@ except SystemError as e:
     print(f"SystemError resulted from importing FA4: {e.__class__.__name__}: {e}")
     traceback.print_exc()
 
+# [Optional] Vanilla Flash Attention v4
+try:
+    from flash_attn.cute import flash_attn_func as upstream_fa4_flash_attn_func
+
+    HAS_VANILLA_FA4 = True
+except (ImportError, IOError, AttributeError):
+    HAS_VANILLA_FA4 = False
+except SystemError as e:
+    HAS_VANILLA_FA4 = False
+    import traceback
+
+    print(
+        f"SystemError resulted from importing vanilla FA4: {e.__class__.__name__}: {e}"
+    )
+    traceback.print_exc()
+
+from ..flash_attention.test_fmha_utils import permute_qkv
+
 # [Optional] xformers backend
 try:
     import xformers  # @manual=//fair/xformers:xformers
     import xformers.ops.fmha as xformers_fmha  # @manual=//fair/xformers:xformers
-    from xformers.ops.fmha import MemoryEfficientAttentionCutlassBlackwellOp
-
-    from ..flash_attention.test_fmha_utils import permute_qkv
 
     HAS_XFORMERS = True
 except (ImportError, IOError, AttributeError, TypeError):
     HAS_XFORMERS = False
+
+try:
+    from mslk.attention.cutlass_blackwell_fmha import cutlass_blackwell_fmha_func
+
+    HAS_CUTLASS_BLACKWELL = True
+except (ImportError, IOError, AttributeError, TypeError):
+    HAS_CUTLASS_BLACKWELL = False
 
 
 try:
@@ -111,7 +127,6 @@ if HAS_TLX:
 from typing import Any, Generator, List
 
 from tritonbench.utils.input import input_filter
-
 from tritonbench.utils.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
@@ -138,6 +153,12 @@ def parse_op_args(args: List[str]):
     parser.add_argument("--n-heads", type=int, default=48, help="Number of heads")
     parser.add_argument(
         "--n-heads-kv", type=int, default=None, help="Number of heads kv"
+    )
+    parser.add_argument(
+        "--n-heads-q-per-kv",
+        type=int,
+        default=1,
+        help="Number of heads per KV group for GQA",
     )
     parser.add_argument("--d-head", type=int, default=64, help="specify head dimension")
     parser.add_argument(
@@ -174,6 +195,12 @@ def parse_op_args(args: List[str]):
         "--gen-cache-size-inputs",
         action="store_true",
         help="Generate inputs as large as the GPU L2 cache size",
+    )
+    parser.add_argument(
+        "--max-inputs-per-iter",
+        type=int,
+        default=0,
+        help="Max inputs per iteration. This is used when --gen-cache-size-inputs is on.",
     )
     return parser.parse_args(args)
 
@@ -217,6 +244,10 @@ def preproc_noop(*args):
     return args
 
 
+def preproc_permute(q, k, v):
+    return [t.contiguous() for t in permute_qkv(q, k, v, perm=(0, 2, 1, 3))]
+
+
 def _sdpa_cudnn_attention(q, k, v, is_causal=False, scale=False):
     os.environ["TORCH_CUDNN_SDPA_ENABLED"] = "1"
     with sdpa_kernel([SDPBackend.CUDNN_ATTENTION]):
@@ -257,6 +288,7 @@ class Operator(BenchmarkOperator):
         self.N_HEAD_KV = (
             args.n_heads_kv if args.n_heads_kv is not None else args.n_heads
         )
+        self.N_HEADS_Q_PER_KV = args.n_heads_q_per_kv
         self.H = args.n_heads
         self.D_HEAD = args.d_head
         self.causal = args.causal
@@ -284,6 +316,7 @@ class Operator(BenchmarkOperator):
         self.sm_scale = args.sm_scale if args.sm_scale else 1.0 / math.sqrt(self.D_HEAD)
         self.deterministic = args.deterministic
         self.gen_cache_size_inputs = args.gen_cache_size_inputs
+        self.max_inputs_per_iter = args.max_inputs_per_iter
         self.optims = {}
 
     @register_benchmark()
@@ -351,9 +384,6 @@ class Operator(BenchmarkOperator):
     @register_benchmark(enabled=HAS_FLASH_V2)
     @multi_input_wrapper
     def flash_v2(self, *args) -> Tuple[Callable, Callable]:
-        def preproc(q, k, v):
-            return (make_packed_qkv(q, k, v),)
-
         fn = partial(
             flash_attn_func,
             softmax_scale=self.sm_scale,
@@ -361,7 +391,7 @@ class Operator(BenchmarkOperator):
             window_size=self.window_size,
             deterministic=self.deterministic,
         )
-        return preproc, fn
+        return preproc_permute, fn
 
     def xformers_preprocess(
         self,
@@ -390,14 +420,18 @@ class Operator(BenchmarkOperator):
         )
         return (fhma_input,)
 
-    @register_benchmark(enabled=HAS_XFORMERS, label="cutlass-blackwell")
+    @register_benchmark(enabled=HAS_CUTLASS_BLACKWELL, label="cutlass-blackwell")
     @multi_input_wrapper
     def cutlass_blackwell(self, *args) -> Tuple[Callable, Callable]:
         fn = partial(
-            xformers.ops.fmha._memory_efficient_attention,
-            op=MemoryEfficientAttentionCutlassBlackwellOp,
+            cutlass_blackwell_fmha_func,
+            softmax_scale=self.sm_scale,
+            causal=self.causal,
+            window_size=self.window_size if self.local else (-1, -1),
+            deterministic=self.deterministic,
+            bottom_right=False,
         )
-        return self.xformers_preprocess, fn
+        return preproc_permute, fn
 
     @register_benchmark(enabled=HAS_XFORMERS, fwd_only=True)
     @multi_input_wrapper
@@ -430,20 +464,27 @@ class Operator(BenchmarkOperator):
     @register_benchmark(enabled=(IS_BLACKWELL and HAS_FLASH_CUTE), label="FAv4")
     @multi_input_wrapper
     def cutedsl_blackwell(self, *args) -> Tuple[Callable, Callable]:
-        def preproc(q, k, v):
-            # [B, H, S, D] -> [B, S, H, D]
-            q = q.transpose(1, 2).contiguous()
-            k = k.transpose(1, 2).contiguous()
-            v = v.transpose(1, 2).contiguous()
-            return q, k, v
-
         fn = partial(
             facute_flash_attn_func,
             softmax_scale=self.sm_scale,
             causal=self.causal,
             window_size=self.window_size if self.local else (None, None),
+            deterministic=self.deterministic,
         )
-        return preproc, fn
+        return preproc_permute, fn
+
+    @register_benchmark(
+        enabled=(IS_BLACKWELL and HAS_VANILLA_FA4), label="vanilla-FAv4"
+    )
+    @multi_input_wrapper
+    def vanilla_fa4(self, *args) -> Tuple[Callable, Callable]:
+        fn = partial(
+            upstream_fa4_flash_attn_func,
+            softmax_scale=self.sm_scale,
+            causal=self.causal,
+            window_size=self.window_size if self.local else (None, None),
+        )
+        return preproc_permute, fn
 
     @register_benchmark()
     @multi_input_wrapper
@@ -602,6 +643,12 @@ class Operator(BenchmarkOperator):
         return fn
 
     def get_input_iter(self) -> Generator:
+        common_kwargs = {
+            "dtype": self.dtype,
+            "device": self.device,
+            "gen_cache_size_inputs": self.gen_cache_size_inputs,
+            "max_inputs_per_iter": self.max_inputs_per_iter,
+        }
         if self.input_types == "CUSTOMIZED_SHAPES":
             return customized_inputs(
                 shape=(
@@ -613,21 +660,15 @@ class Operator(BenchmarkOperator):
                     self.D_HEAD,
                 ),
                 num_inputs=self.tb_args.num_inputs,
-                dtype=self.dtype,
-                device=self.device,
-                gen_cache_size_inputs=self.gen_cache_size_inputs,
+                **common_kwargs,
             )
         elif self.input_types == "FA3_PAPER_SHAPES":
-            return fa3_paper_inputs(
-                dtype=self.dtype,
-                device=self.device,
-                gen_cache_size_inputs=self.gen_cache_size_inputs,
-            )
+            return fa3_paper_inputs(**common_kwargs)
         elif self.input_types == "SWEEP_SHAPES":
             return sweep_inputs(
-                dtype=self.dtype,
-                device=self.device,
-                gen_cache_size_inputs=self.gen_cache_size_inputs,
+                D=self.D_HEAD,
+                num_heads_q_per_kv=self.N_HEADS_Q_PER_KV,
+                **common_kwargs,
             )
         else:
             raise AssertionError(f"Unknown input type {self.input_types}")

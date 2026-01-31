@@ -14,14 +14,12 @@ Extra Credits:
 import os
 
 import torch
-
 import triton
 import triton.language as tl
 from triton.tools.tensor_descriptor import TensorDescriptor
 from tritonbench.utils.env_utils import is_tile_enabled
 
 from .attention_utils import WITH_MAXNREG
-
 from .blackwell_attention_utils import (
     is_blackwell,
     is_cuda,
@@ -110,7 +108,6 @@ def _attn_fwd_subtile(
         p1_bf16 = p1.to(dtype)
 
         p = tl.join(p0, p1).permute(0, 2, 1).reshape([PM, PN])
-        p_bf16 = tl.join(p0_bf16, p1_bf16).permute(0, 2, 1).reshape([PM, PN])
     else:
         p = tl.math.exp2(qk)
 
@@ -148,6 +145,8 @@ def _attn_fwd_subtile(
     # prepare p and v for the dot
     if not SUBTILING_P:
         p_bf16 = p.to(dtype)
+    else:
+        p_bf16 = tl.join(p0_bf16, p1_bf16).permute(0, 2, 1).reshape([PM, PN])
     # note that this non transposed v for FP8 is only supported on Blackwell
     acc = tl.dot(p_bf16, v, acc)
     if not FADD2_REDUCE:
@@ -288,20 +287,11 @@ if is_tile_enabled():
             "FADD2_REDUCE": add2reduce,
         }
         extra_kwargs = {"pre_hook": _host_descriptor_pre_hook}
-
-        # Only add minRegAutoWS/maxRegAutoWS if supported (triton/tree/ws-3.5)
-        if HAS_REG_AUTO_WS:
-            extra_kwargs["minRegAutoWS"] = 24
-            extra_kwargs["maxRegAutoWS"] = 152
-
-        if HAS_PINGPONG_AUTO_WS:
-            extra_kwargs["pingpongAutoWS"] = True
-
         return triton.Config(config_kwargs, **extra_kwargs)
 
     configs = [
         make_tile_config(BM, BN, occ, subtile, subtile_p, vectmul, add2reduce)
-        for BM in [64, 128, 256]
+        for BM in [256]
         for BN in [64, 128]
         for occ in [1, 2]
         for subtile in [True]
@@ -347,7 +337,7 @@ else:
         for s in NUM_STAGES_OPTIONS
         for w in [4]
         for subtile in [True]
-        for subtile_p in [False]
+        for subtile_p in [True, False]
         for vectmul in [1]
         for add2reduce in [False]
         for maxreg in [152, 192]
@@ -381,7 +371,7 @@ def prune_persistent_configs(configs, named_args, **kwargs):
 
 @triton.jit
 def _maybe_make_tensor_desc(desc_or_ptr, shape, strides, block_shape):
-    if isinstance(desc_or_ptr, tl.tensor_descriptor):
+    if isinstance(desc_or_ptr, triton.language.core.tensor_descriptor_base):
         return desc_or_ptr
     else:
         return tl.make_tensor_descriptor(desc_or_ptr, shape, strides, block_shape)

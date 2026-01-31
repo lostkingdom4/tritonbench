@@ -2,18 +2,17 @@ import argparse
 import copy
 import logging
 import os
+import re
+import shlex
 import subprocess
 import sys
 import time
-
 from datetime import datetime
 from pathlib import Path
-
 from typing import Dict, List, Optional
 
 import torch
 import yaml
-
 from tritonbench.operator_loader import get_op_loader_bench_cls_by_name, is_loader_op
 from tritonbench.operators import load_opbench_by_name
 from tritonbench.operators_collection import list_operators_by_collection
@@ -181,9 +180,9 @@ def tritonbench_run(args: Optional[List[str]] = None):
     # Check if A/B testing mode is enabled
     if args.side_a is not None and args.side_b is not None:
         # A/B testing mode - only support single operator
-        assert (
-            len(ops) == 1
-        ), "A/B testing validation should have caught multiple operators"
+        assert len(ops) == 1, (
+            "A/B testing validation should have caught multiple operators"
+        )
         op = ops[0]
         args.op = op
 
@@ -295,7 +294,9 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorRe
 
 
 def run_config(config_file: str, args: List[str]):
-    assert Path(config_file).exists(), f"Config file {config_file} must exist."
+    assert Path(config_file).exists(), (
+        f"Config file {config_file} must exist. Current working directory {os.getcwd()}"
+    )  # Fbcode only: need to run from fbsource root directory
     # Remove "TRITONBENCH_RUN_CONFIG" env
     if "TRITONBENCH_RUN_CONFIG" in os.environ:
         del os.environ["TRITONBENCH_RUN_CONFIG"]
@@ -307,9 +308,19 @@ def run_config(config_file: str, args: List[str]):
         op_args = benchmark_config["args"].split(" ") + args
         env_string = benchmark_config.get("envs", None)
         extra_envs = {}
+        forbidden_list = [";", "$", "&"]
         if env_string:
-            for env_part in env_string.split(" "):
-                key, val = env_part.split("=")
+            _ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+            if any(char in env_string for char in forbidden_list):
+                raise ValueError(
+                    f"Env string containing '{forbidden_list}' is not supported."
+                )
+            for env_part in shlex.split(env_string, posix=True):
+                if not _ASSIGN_RE.match(env_part):
+                    raise ValueError(
+                        f"Env string must be in the form of key=value, get {env_part}"
+                    )
+                key, val = env_part.split("=", 1)
                 extra_envs[key] = val
         disabled = benchmark_config.get("disabled", False)
         if disabled:

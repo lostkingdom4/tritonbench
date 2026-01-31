@@ -16,23 +16,20 @@ import sys
 import tempfile
 import time
 import types
-
 from collections import defaultdict, OrderedDict
 from dataclasses import asdict, dataclass, fields
 from enum import Enum
 from numbers import Number
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Type, Union
 
 import psutil
 import tabulate
 import torch
 import triton
 from torch.utils._pytree import tree_map
-
 from tritonbench.components.do_bench import do_bench_wrapper, Latency
 from tritonbench.components.export import export_data
-
 from tritonbench.components.power import PowerManagerTask
 from tritonbench.data import get_input_loader
 from tritonbench.utils.constants import (
@@ -61,6 +58,8 @@ from tritonbench.utils.path_utils import (
     remove_cmd_parameter,
     REPO_PATH,
 )
+from tritonbench.utils.path_utils import add_cmd_parameter, remove_cmd_parameter
+from tritonbench.utils.plugin_utils import load_plugin
 
 if is_hip():
     from tritonbench.components.att import launch_att
@@ -210,9 +209,9 @@ def _find_op_name_from_module_path(module_path: str) -> str:
     PATH_PREFIX = "tritonbench.operators."
     # We have a separate operator loader for aten operator benchmark.
     PATH_PREFIX_LOADER = "tritonbench.operator_loader."
-    assert (
-        PATH_PREFIX in module_path or PATH_PREFIX_LOADER in module_path
-    ), f"We rely on module path prefix to identify operator name. Expected {PATH_PREFIX}<operator_name>, get {module_path}."
+    assert PATH_PREFIX in module_path or PATH_PREFIX_LOADER in module_path, (
+        f"We rely on module path prefix to identify operator name. Expected {PATH_PREFIX}<operator_name>, get {module_path}."
+    )
     if PATH_PREFIX_LOADER in module_path:
         suffix = module_path.partition(PATH_PREFIX_LOADER)[2]
         suffix = suffix.partition(".")[2]
@@ -532,10 +531,16 @@ class BenchmarkOperatorResult:
                     )
                     if value is None:
                         continue
-                    if isinstance(value, (int, float)):
+                    numeric_value = value
+                    if isinstance(value, str):
+                        try:
+                            numeric_value = float(value)
+                        except (ValueError, TypeError):
+                            continue
+                    if isinstance(numeric_value, (int, float)):
                         agg_data[agg_metric_name] = agg_data.get(
                             agg_metric_name, []
-                        ) + [value]
+                        ) + [numeric_value]
         final_agg_data = {k: sum(v) / len(v) for k, v in agg_data.items()}
         userbenchmark_metrics_dict.update(final_agg_data)
 
@@ -551,9 +556,9 @@ class BenchmarkOperatorResult:
             metrics_dict = asdict(y_vals)
         if metric_name in metrics_dict:
             return metrics_dict[metric_name]
-        assert (
-            metric_name in metrics_dict["extra_metrics"]
-        ), f"Metric {metric_name} could not be found."
+        assert metric_name in metrics_dict["extra_metrics"], (
+            f"Metric {metric_name} could not be found."
+        )
         return metrics_dict["extra_metrics"][metric_name]
 
     def _get_result_dict(self):
@@ -616,6 +621,7 @@ def register_benchmark(
     fwd_only: bool = False,
     label: Optional[str] = None,
     tags: Optional[List[str]] = None,
+    cls: Optional[Type] = None,
 ):
     def decorator(function):
         op_name = (
@@ -641,6 +647,9 @@ def register_benchmark(
         def _inner(self, *args, **kwargs):
             return function(self, *args, **kwargs)
 
+        if cls:
+            assert fn_name, "func_name must be provided when using class."
+            setattr(cls, fn_name, _inner)
         return _inner
 
     return decorator
@@ -736,6 +745,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     ):
         set_env()
         set_random_seed()
+        if tb_args.plugin:
+            load_plugin(tb_args.plugin)
         if extra_args and not tb_args:
             tb_args, extra_args = override_args(extra_args)
         elif not tb_args:
@@ -770,9 +781,9 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         elif self.tb_args.mode == "fwd_no_grad":
             self.mode = Mode.FWD_NO_GRAD
         else:
-            assert (
-                self.tb_args.mode == "bwd"
-            ), "We only accept test modes: fwd, bwd, fwd_bwd, or fwd_no_grad."
+            assert self.tb_args.mode == "bwd", (
+                "We only accept test modes: fwd, bwd, fwd_bwd, or fwd_no_grad."
+            )
             self.mode = Mode.BWD
         self.requires_grad = not (self.mode == Mode.FWD_NO_GRAD)
         self.device = tb_args.device
@@ -911,7 +922,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     def _get_bm_func(self, bm_func_name: str):
         fwd_fn_lambda = getattr(self, bm_func_name, None)
         assert callable(fwd_fn_lambda), (
-            f"Could not find benchmark {bm_func_name} registered in {self.name}. "
+            f"Could not find benchmark {bm_func_name} registered in {self.name}. type is {type(getattr(self, bm_func_name, None))} "
             f"Available benchmarks: {REGISTERED_BENCHMARKS[self.name].keys()}. "
         )
         with TimerContext(enabled=logger.level <= logging.INFO) as timer:
@@ -930,16 +941,16 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             setattr(fwd_fn, "_name", bm_func_name)
             return fwd_fn
         elif self.mode == Mode.BWD:
-            assert (
-                not backend.fwd_only
-            ), f"Backend {bm_func_name} does not support backward pass."
+            assert not backend.fwd_only, (
+                f"Backend {bm_func_name} does not support backward pass."
+            )
             bwd_fn = self.get_bwd_fn(fwd_fn)
             setattr(bwd_fn, "_name", bm_func_name)
             return bwd_fn
         elif self.mode == Mode.FWD_BWD:
-            assert (
-                not backend.fwd_only
-            ), f"Backend {bm_func_name} does not support backward pass."
+            assert not backend.fwd_only, (
+                f"Backend {bm_func_name} does not support backward pass."
+            )
             bwd_fn = self.get_bwd_fn(fwd_fn)
 
             # FWD_BWD returns (forward_output, grad_tensors_after_backward)
@@ -1019,6 +1030,10 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         """Benchmarking the operator and returning its metrics."""
         metrics: list[tuple[Any, dict[str, BenchmarkOperatorMetrics]]] = []
         if self.tb_args.power_chart:
+            if PowerManagerTask is None:
+                raise RuntimeError(
+                    "power_chart requires a CUDA-capable GPU with pynvml support"
+                )
             power_manager_task = PowerManagerTask.create(
                 self.benchmark_name,
                 _get_current_device_id(),
@@ -1309,7 +1324,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         from unittest import mock
 
         from triton.runtime import Autotuner
-
         from triton.runtime.jit import JITFunction
 
         original_run = Autotuner.run
@@ -1724,9 +1738,9 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 self.required_metrics
             )
             for metric_name in required_custom_metrics:
-                assert (
-                    metric_name not in BUILTIN_METRICS
-                ), "Metric name {metric_name} is built-in and should be OVERRIDDEN_METRICS. Please report a bug."
+                assert metric_name not in BUILTIN_METRICS, (
+                    "Metric name {metric_name} is built-in and should be OVERRIDDEN_METRICS. Please report a bug."
+                )
                 extra_metrics[metric_name] = None
             return extra_metrics
 
@@ -2577,14 +2591,14 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             if is_mtia()
             else torch.cuda.get_device_name()
         )
-        assert (
-            device_name in rooflines
-        ), f"{device_name} is not supported in HW roofline specs."
+        assert device_name in rooflines, (
+            f"{device_name} is not supported in HW roofline specs."
+        )
         rooflines = rooflines[device_name]
         if self.is_compute_bound:
-            assert (
-                self.tb_args.precision in rooflines
-            ), f"{self.tb_args.precision} is not supported by {device_name}."
+            assert self.tb_args.precision in rooflines, (
+                f"{self.tb_args.precision} is not supported by {device_name}."
+            )
             return rooflines[self.tb_args.precision]
         return rooflines
 

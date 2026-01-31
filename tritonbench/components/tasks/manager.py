@@ -1,6 +1,5 @@
 import gc
 import threading
-
 from typing import Any, Dict, Optional
 
 from tritonbench.components.tasks.base import run_in_worker, TaskBase
@@ -38,8 +37,11 @@ class ManagerTask(TaskBase):
         import os
         import traceback
 
-        # required as this is in child process
-        from tritonbench.components.power.power_manager import PowerManager
+        import torch
+
+        # PowerManager requires pynvml which is only available when NVIDIA GPU is present
+        if torch.cuda.is_available():
+            from tritonbench.components.power.power_manager import PowerManager
 
         module = importlib.import_module(module_path, package=package)
         Ctor = getattr(module, class_name)

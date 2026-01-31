@@ -26,3 +26,4 @@ autotuner.log
 irs/
 extract/
 agentic/
+bisect_logs/

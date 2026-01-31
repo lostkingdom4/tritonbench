@@ -12,14 +12,12 @@ Extra Credits:
 """
 
 import torch
-
 import triton
 import triton.language as tl
 from triton.tools.tensor_descriptor import TensorDescriptor
 from tritonbench.utils.env_utils import is_tile_enabled
 
 from .attention_utils import WITH_MAXNREG, WITH_OSS_WARPSPEC
-
 from .blackwell_attention_utils import (
     is_blackwell,
     is_cuda,
@@ -224,14 +222,9 @@ if is_tile_enabled():
             "SUBTILING": subtile,
             "VECT_MUL": vectmul,
             "FADD2_REDUCE": add2reduce,
+            "DP_FACTOR": 1,
         }
         extra_kwargs = {"pre_hook": _host_descriptor_pre_hook}
-
-        # Only add minRegAutoWS/maxRegAutoWS if supported (triton/tree/ws-3.5)
-        if HAS_REG_AUTO_WS:
-            extra_kwargs["minRegAutoWS"] = 24
-            extra_kwargs["maxRegAutoWS"] = 152
-
         return triton.Config(config_kwargs, **extra_kwargs)
 
     configs = [

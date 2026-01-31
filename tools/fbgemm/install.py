@@ -1,7 +1,6 @@
 import os
 import subprocess
 import sys
-
 from pathlib import Path
 
 # requires torch
@@ -53,8 +52,9 @@ def install_build_fbgemm(genai=True):
     fbgemm_repo_path = FBGEMM_INSTALL_PATH.joinpath("FBGEMM")
     if not os.path.exists(fbgemm_repo_path):
         checkout_fbgemm()
-    pip_install_requirements("requirements.txt",
-        current_dir=str(fbgemm_repo_path.joinpath("fbgemm_gpu").resolve())
+    pip_install_requirements(
+        "requirements.txt",
+        current_dir=str(fbgemm_repo_path.joinpath("fbgemm_gpu").resolve()),
     )
     # Build target H100(9.0, 9.0a) and blackwell (10.0, 12.0)
     extra_envs = os.environ.copy()

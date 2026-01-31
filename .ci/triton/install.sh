@@ -8,54 +8,6 @@ usage() {
     exit 1
 }
 
-# remove triton installations
-remove_triton() {
-    # delete the original triton directory
-    TRITON_PKG_DIR=$(python -c "import triton; import os; print(os.path.dirname(triton.__file__))")
-    # make sure all pytorch triton has been uninstalled
-    if [ -n "${UV_VENV_DIR:-}" ]; then
-        uv pip uninstall triton
-        uv pip uninstall triton
-        uv pip uninstall triton
-    else
-        pip uninstall -y triton
-        pip uninstall -y triton
-        pip uninstall -y triton
-    fi
-    rm -rf "${TRITON_PKG_DIR}"
-}
-
-checkout_triton() {
-    REPO=$1
-    COMMIT=$2
-    TRITON_INSTALL_DIR=$3
-    NIGHTLY=$4
-    TRITON_INSTALL_DIRNAME=$(basename "${TRITON_INSTALL_DIR}")
-    TRITON_INSTALL_BASEDIR=$(dirname "${TRITON_INSTALL_DIR}")
-    cd "${TRITON_INSTALL_BASEDIR}"
-    git clone "https://github.com/${REPO}.git" "${TRITON_INSTALL_DIRNAME}"
-    cd "${TRITON_INSTALL_DIR}"
-    git checkout "${COMMIT}"
-    if [ "${NIGHTLY}" == "1" ]; then
-        # truncate the branch to the earliest commit of the current day
-        git checkout $(git rev-list --reverse --since=midnight HEAD | head -n 1)
-    fi
-}
-
-install_triton() {
-    TRITON_INSTALL_DIR=$1
-    cd "${TRITON_INSTALL_DIR}"
-    # install main triton
-    if [ -n "${UV_VENV_DIR:-}" ]; then
-        uv pip install ninja cmake wheel pybind11; # build-time dependencies
-        uv pip install -r python/requirements.txt
-        uv pip install -e .
-    else
-        pip install ninja cmake wheel pybind11; # build-time dependencies
-        pip install -r python/requirements.txt
-        pip install -e .
-    fi
-}
 
 remove_env() {
     CONDA_ENV=$1
@@ -69,7 +21,6 @@ remove_env() {
 }
 
 clone_env() {
-    
     DEST_CONDA_ENV=$1
     SRC_CONDA_ENV=$2
     if [ -n "${UV_VENV_DIR:-}" ]; then
@@ -95,6 +46,7 @@ while [[ "$#" -gt 0 ]]; do
         --commit) COMMIT="$2"; shift ;;
         --side) SIDE="$2"; shift ;;
         --nightly) NIGHTLY="1"; ;;
+        --no-build) NO_BUILD="1"; ;;
         --install-dir) TRITON_INSTALL_DIR="$2"; shift ;;
         *) echo "Unknown parameter passed: $1"; usage ;;
     esac
@@ -131,6 +83,7 @@ else
     exit 1
 fi
 
+
 CONDA_ENV=pytorch . "${SETUP_SCRIPT}"
 # Remove the conda env if exists
 remove_env "${CONDA_ENV}"
@@ -138,10 +91,16 @@ clone_env "${CONDA_ENV}" pytorch
 
 . "${SETUP_SCRIPT}"
 
+TRITONBENCH_DIR=$(dirname "$(readlink -f "$0")")/../..
+. "${TRITONBENCH_DIR}/.ci/triton/triton_install_utils.sh"
+
 remove_triton
 
 checkout_triton "${REPO}" "${COMMIT}" "${TRITON_INSTALL_DIR}" "${NIGHTLY}"
-install_triton "${TRITON_INSTALL_DIR}"
+
+if [ -z "${NO_BUILD:-}" ]; then
+    install_triton "${TRITON_INSTALL_DIR}"
+fi
 
 # export Triton repo related envs
 # these envs will be used in nightly runs and other benchmarks
