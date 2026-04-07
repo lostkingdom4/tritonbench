@@ -3,9 +3,15 @@ addmm:
     tags:
     - aten
   pt2_addmm_maxautotune:
+    kernels:
+    - triton_mm
+    - triton_tem_fused_addmm_0
     tags:
     - pt2
   pt2_triton_matmul:
+    kernels:
+    - triton_mm
+    - triton_tem_fused_addmm_0
     tags:
     - pt2
   streamk_addmm:
@@ -124,6 +130,10 @@ cross_entropy:
     - liger
     - triton
   torch_compile_cross_entropy_loss:
+    kernels:
+    - triton_per_fused_nll_loss_forward_2
+    - triton_red_fused__log_softmax_0
+    - triton_red_fused_nll_loss_forward_1
     tags:
     - pt2
 decoding_attention:
@@ -141,14 +151,14 @@ decoding_attention:
   fa3_mha_varlen_fwd:
     tags:
     - xformers
+  flash_cute_dsl:
+    tags: []
   mslk_gqa_fp8kv:
     kernels:
     - torch.ops.mslk.gqa_attn_splitk
     tags:
     - native_custom_ops
     - mslk
-  flash_cute_dsl:
-    tags: []
   triton_splitk:
     tags:
     - xformers
@@ -163,6 +173,8 @@ embedding:
     - triton
     - liger
   torch_compile_embedding:
+    kernels:
+    - triton_poi_fused_embedding_0
     tags:
     - pt2
   torch_embedding:
@@ -382,6 +394,10 @@ fused_linear_cross_entropy:
     - liger
     - triton
   torch_compile_fused_linear_cross_entropy:
+    kernels:
+    - triton_per_fused_nll_loss_forward_2
+    - triton_red_fused__log_softmax_0
+    - triton_red_fused_nll_loss_forward_1
     tags:
     - pt2
   torch_lm_head_ce:
@@ -392,6 +408,10 @@ fused_linear_jsd:
     - liger
     - triton
   torch_compile_lm_head_jsd:
+    kernels:
+    - triton_per_fused__to_copy_add_div_mul_sum_1
+    - triton_red_fused__log_softmax__to_copy_exp_lerp_log_mul_sub_sum_view_0
+    - triton_red_fused__to_copy_add_div_mul_sum_1
     tags:
     - pt2
   torch_lm_head_jsd:
@@ -452,6 +472,8 @@ geglu:
     - liger
     - triton
   torch_compile_geglu:
+    kernels:
+    - triton_poi_fused_gelu_mul_0
     tags:
     - pt2
   torch_geglu:
@@ -565,6 +587,8 @@ int4_gemm:
     tags:
     - triton
   torch_compile_int4_gemm:
+    kernels:
+    - triton_poi_fused___lshift___bitwise_and_bitwise_or_0
     tags:
     - pt2
   triton_int4_gemm:
@@ -574,6 +598,10 @@ int4_gemm:
     - triton
 jagged_layer_norm:
   torch_compile_nested_tensor_integration:
+    kernels:
+    - triton_poi_fused__jagged_to_padded_dense_forward__padded_dense_to_jagged_forward_add_div_mul_sqrt_sub_1
+    - triton_poi_fused__jagged_to_padded_dense_forward__padded_dense_to_jagged_forward_add_div_mul_sqrt_sub_view_2
+    - triton_red_fused__jagged_to_padded_dense_forward_div_mul_pow_sub_sum_0
     tags:
     - pt2
   torch_jagged_layer_norm_torch_sum:
@@ -588,15 +616,1561 @@ jagged_layer_norm:
     - aten
 jagged_mean:
   torch_compile_jagged_mean_torch_nanmean:
+    kernels:
+    - triton_red_fused__jagged_to_padded_dense_forward_div_logical_not_nansum_ne_sum_0
     tags:
     - pt2
   torch_compile_jagged_mean_torch_sum:
+    kernels:
+    - triton_red_fused__jagged_to_padded_dense_forward_div_sum_0
     tags:
     - pt2
   torch_compile_jagged_mean_unbind_torch_mean:
+    kernels:
+    - triton_per_fused_cat_mean_0
+    - triton_per_fused_cat_mean_1
+    - triton_per_fused_cat_mean_10
+    - triton_per_fused_cat_mean_100
+    - triton_per_fused_cat_mean_101
+    - triton_per_fused_cat_mean_102
+    - triton_per_fused_cat_mean_103
+    - triton_per_fused_cat_mean_104
+    - triton_per_fused_cat_mean_105
+    - triton_per_fused_cat_mean_106
+    - triton_per_fused_cat_mean_107
+    - triton_per_fused_cat_mean_108
+    - triton_per_fused_cat_mean_109
+    - triton_per_fused_cat_mean_11
+    - triton_per_fused_cat_mean_110
+    - triton_per_fused_cat_mean_111
+    - triton_per_fused_cat_mean_112
+    - triton_per_fused_cat_mean_113
+    - triton_per_fused_cat_mean_114
+    - triton_per_fused_cat_mean_115
+    - triton_per_fused_cat_mean_116
+    - triton_per_fused_cat_mean_117
+    - triton_per_fused_cat_mean_118
+    - triton_per_fused_cat_mean_119
+    - triton_per_fused_cat_mean_12
+    - triton_per_fused_cat_mean_120
+    - triton_per_fused_cat_mean_121
+    - triton_per_fused_cat_mean_122
+    - triton_per_fused_cat_mean_123
+    - triton_per_fused_cat_mean_124
+    - triton_per_fused_cat_mean_125
+    - triton_per_fused_cat_mean_126
+    - triton_per_fused_cat_mean_127
+    - triton_per_fused_cat_mean_128
+    - triton_per_fused_cat_mean_129
+    - triton_per_fused_cat_mean_13
+    - triton_per_fused_cat_mean_130
+    - triton_per_fused_cat_mean_131
+    - triton_per_fused_cat_mean_132
+    - triton_per_fused_cat_mean_133
+    - triton_per_fused_cat_mean_134
+    - triton_per_fused_cat_mean_135
+    - triton_per_fused_cat_mean_136
+    - triton_per_fused_cat_mean_137
+    - triton_per_fused_cat_mean_138
+    - triton_per_fused_cat_mean_139
+    - triton_per_fused_cat_mean_14
+    - triton_per_fused_cat_mean_140
+    - triton_per_fused_cat_mean_141
+    - triton_per_fused_cat_mean_142
+    - triton_per_fused_cat_mean_143
+    - triton_per_fused_cat_mean_144
+    - triton_per_fused_cat_mean_145
+    - triton_per_fused_cat_mean_146
+    - triton_per_fused_cat_mean_147
+    - triton_per_fused_cat_mean_148
+    - triton_per_fused_cat_mean_149
+    - triton_per_fused_cat_mean_15
+    - triton_per_fused_cat_mean_150
+    - triton_per_fused_cat_mean_151
+    - triton_per_fused_cat_mean_152
+    - triton_per_fused_cat_mean_153
+    - triton_per_fused_cat_mean_154
+    - triton_per_fused_cat_mean_155
+    - triton_per_fused_cat_mean_156
+    - triton_per_fused_cat_mean_157
+    - triton_per_fused_cat_mean_158
+    - triton_per_fused_cat_mean_159
+    - triton_per_fused_cat_mean_16
+    - triton_per_fused_cat_mean_160
+    - triton_per_fused_cat_mean_161
+    - triton_per_fused_cat_mean_162
+    - triton_per_fused_cat_mean_163
+    - triton_per_fused_cat_mean_164
+    - triton_per_fused_cat_mean_165
+    - triton_per_fused_cat_mean_166
+    - triton_per_fused_cat_mean_167
+    - triton_per_fused_cat_mean_168
+    - triton_per_fused_cat_mean_169
+    - triton_per_fused_cat_mean_17
+    - triton_per_fused_cat_mean_170
+    - triton_per_fused_cat_mean_171
+    - triton_per_fused_cat_mean_172
+    - triton_per_fused_cat_mean_173
+    - triton_per_fused_cat_mean_174
+    - triton_per_fused_cat_mean_175
+    - triton_per_fused_cat_mean_176
+    - triton_per_fused_cat_mean_177
+    - triton_per_fused_cat_mean_178
+    - triton_per_fused_cat_mean_179
+    - triton_per_fused_cat_mean_18
+    - triton_per_fused_cat_mean_180
+    - triton_per_fused_cat_mean_181
+    - triton_per_fused_cat_mean_182
+    - triton_per_fused_cat_mean_183
+    - triton_per_fused_cat_mean_184
+    - triton_per_fused_cat_mean_185
+    - triton_per_fused_cat_mean_186
+    - triton_per_fused_cat_mean_187
+    - triton_per_fused_cat_mean_188
+    - triton_per_fused_cat_mean_189
+    - triton_per_fused_cat_mean_19
+    - triton_per_fused_cat_mean_190
+    - triton_per_fused_cat_mean_191
+    - triton_per_fused_cat_mean_192
+    - triton_per_fused_cat_mean_193
+    - triton_per_fused_cat_mean_194
+    - triton_per_fused_cat_mean_195
+    - triton_per_fused_cat_mean_196
+    - triton_per_fused_cat_mean_197
+    - triton_per_fused_cat_mean_198
+    - triton_per_fused_cat_mean_199
+    - triton_per_fused_cat_mean_2
+    - triton_per_fused_cat_mean_20
+    - triton_per_fused_cat_mean_200
+    - triton_per_fused_cat_mean_201
+    - triton_per_fused_cat_mean_202
+    - triton_per_fused_cat_mean_203
+    - triton_per_fused_cat_mean_204
+    - triton_per_fused_cat_mean_205
+    - triton_per_fused_cat_mean_206
+    - triton_per_fused_cat_mean_207
+    - triton_per_fused_cat_mean_208
+    - triton_per_fused_cat_mean_209
+    - triton_per_fused_cat_mean_21
+    - triton_per_fused_cat_mean_210
+    - triton_per_fused_cat_mean_211
+    - triton_per_fused_cat_mean_212
+    - triton_per_fused_cat_mean_213
+    - triton_per_fused_cat_mean_214
+    - triton_per_fused_cat_mean_215
+    - triton_per_fused_cat_mean_216
+    - triton_per_fused_cat_mean_217
+    - triton_per_fused_cat_mean_218
+    - triton_per_fused_cat_mean_219
+    - triton_per_fused_cat_mean_22
+    - triton_per_fused_cat_mean_220
+    - triton_per_fused_cat_mean_221
+    - triton_per_fused_cat_mean_222
+    - triton_per_fused_cat_mean_223
+    - triton_per_fused_cat_mean_224
+    - triton_per_fused_cat_mean_225
+    - triton_per_fused_cat_mean_226
+    - triton_per_fused_cat_mean_227
+    - triton_per_fused_cat_mean_228
+    - triton_per_fused_cat_mean_229
+    - triton_per_fused_cat_mean_23
+    - triton_per_fused_cat_mean_230
+    - triton_per_fused_cat_mean_231
+    - triton_per_fused_cat_mean_232
+    - triton_per_fused_cat_mean_233
+    - triton_per_fused_cat_mean_234
+    - triton_per_fused_cat_mean_235
+    - triton_per_fused_cat_mean_236
+    - triton_per_fused_cat_mean_237
+    - triton_per_fused_cat_mean_238
+    - triton_per_fused_cat_mean_239
+    - triton_per_fused_cat_mean_24
+    - triton_per_fused_cat_mean_240
+    - triton_per_fused_cat_mean_241
+    - triton_per_fused_cat_mean_242
+    - triton_per_fused_cat_mean_243
+    - triton_per_fused_cat_mean_244
+    - triton_per_fused_cat_mean_245
+    - triton_per_fused_cat_mean_246
+    - triton_per_fused_cat_mean_247
+    - triton_per_fused_cat_mean_248
+    - triton_per_fused_cat_mean_249
+    - triton_per_fused_cat_mean_25
+    - triton_per_fused_cat_mean_250
+    - triton_per_fused_cat_mean_251
+    - triton_per_fused_cat_mean_252
+    - triton_per_fused_cat_mean_253
+    - triton_per_fused_cat_mean_254
+    - triton_per_fused_cat_mean_255
+    - triton_per_fused_cat_mean_256
+    - triton_per_fused_cat_mean_257
+    - triton_per_fused_cat_mean_258
+    - triton_per_fused_cat_mean_259
+    - triton_per_fused_cat_mean_26
+    - triton_per_fused_cat_mean_260
+    - triton_per_fused_cat_mean_261
+    - triton_per_fused_cat_mean_262
+    - triton_per_fused_cat_mean_263
+    - triton_per_fused_cat_mean_264
+    - triton_per_fused_cat_mean_265
+    - triton_per_fused_cat_mean_266
+    - triton_per_fused_cat_mean_267
+    - triton_per_fused_cat_mean_268
+    - triton_per_fused_cat_mean_269
+    - triton_per_fused_cat_mean_27
+    - triton_per_fused_cat_mean_270
+    - triton_per_fused_cat_mean_271
+    - triton_per_fused_cat_mean_272
+    - triton_per_fused_cat_mean_273
+    - triton_per_fused_cat_mean_274
+    - triton_per_fused_cat_mean_275
+    - triton_per_fused_cat_mean_276
+    - triton_per_fused_cat_mean_277
+    - triton_per_fused_cat_mean_278
+    - triton_per_fused_cat_mean_279
+    - triton_per_fused_cat_mean_28
+    - triton_per_fused_cat_mean_280
+    - triton_per_fused_cat_mean_281
+    - triton_per_fused_cat_mean_282
+    - triton_per_fused_cat_mean_283
+    - triton_per_fused_cat_mean_284
+    - triton_per_fused_cat_mean_285
+    - triton_per_fused_cat_mean_286
+    - triton_per_fused_cat_mean_287
+    - triton_per_fused_cat_mean_288
+    - triton_per_fused_cat_mean_289
+    - triton_per_fused_cat_mean_29
+    - triton_per_fused_cat_mean_290
+    - triton_per_fused_cat_mean_291
+    - triton_per_fused_cat_mean_292
+    - triton_per_fused_cat_mean_293
+    - triton_per_fused_cat_mean_294
+    - triton_per_fused_cat_mean_295
+    - triton_per_fused_cat_mean_296
+    - triton_per_fused_cat_mean_297
+    - triton_per_fused_cat_mean_298
+    - triton_per_fused_cat_mean_299
+    - triton_per_fused_cat_mean_3
+    - triton_per_fused_cat_mean_30
+    - triton_per_fused_cat_mean_300
+    - triton_per_fused_cat_mean_301
+    - triton_per_fused_cat_mean_302
+    - triton_per_fused_cat_mean_303
+    - triton_per_fused_cat_mean_304
+    - triton_per_fused_cat_mean_305
+    - triton_per_fused_cat_mean_306
+    - triton_per_fused_cat_mean_307
+    - triton_per_fused_cat_mean_308
+    - triton_per_fused_cat_mean_309
+    - triton_per_fused_cat_mean_31
+    - triton_per_fused_cat_mean_310
+    - triton_per_fused_cat_mean_311
+    - triton_per_fused_cat_mean_312
+    - triton_per_fused_cat_mean_313
+    - triton_per_fused_cat_mean_314
+    - triton_per_fused_cat_mean_315
+    - triton_per_fused_cat_mean_316
+    - triton_per_fused_cat_mean_317
+    - triton_per_fused_cat_mean_318
+    - triton_per_fused_cat_mean_319
+    - triton_per_fused_cat_mean_32
+    - triton_per_fused_cat_mean_320
+    - triton_per_fused_cat_mean_321
+    - triton_per_fused_cat_mean_322
+    - triton_per_fused_cat_mean_323
+    - triton_per_fused_cat_mean_324
+    - triton_per_fused_cat_mean_325
+    - triton_per_fused_cat_mean_326
+    - triton_per_fused_cat_mean_327
+    - triton_per_fused_cat_mean_328
+    - triton_per_fused_cat_mean_329
+    - triton_per_fused_cat_mean_33
+    - triton_per_fused_cat_mean_330
+    - triton_per_fused_cat_mean_331
+    - triton_per_fused_cat_mean_332
+    - triton_per_fused_cat_mean_333
+    - triton_per_fused_cat_mean_334
+    - triton_per_fused_cat_mean_335
+    - triton_per_fused_cat_mean_336
+    - triton_per_fused_cat_mean_337
+    - triton_per_fused_cat_mean_338
+    - triton_per_fused_cat_mean_339
+    - triton_per_fused_cat_mean_34
+    - triton_per_fused_cat_mean_340
+    - triton_per_fused_cat_mean_341
+    - triton_per_fused_cat_mean_342
+    - triton_per_fused_cat_mean_343
+    - triton_per_fused_cat_mean_344
+    - triton_per_fused_cat_mean_345
+    - triton_per_fused_cat_mean_346
+    - triton_per_fused_cat_mean_347
+    - triton_per_fused_cat_mean_348
+    - triton_per_fused_cat_mean_349
+    - triton_per_fused_cat_mean_35
+    - triton_per_fused_cat_mean_350
+    - triton_per_fused_cat_mean_351
+    - triton_per_fused_cat_mean_352
+    - triton_per_fused_cat_mean_353
+    - triton_per_fused_cat_mean_354
+    - triton_per_fused_cat_mean_355
+    - triton_per_fused_cat_mean_356
+    - triton_per_fused_cat_mean_357
+    - triton_per_fused_cat_mean_358
+    - triton_per_fused_cat_mean_359
+    - triton_per_fused_cat_mean_36
+    - triton_per_fused_cat_mean_360
+    - triton_per_fused_cat_mean_361
+    - triton_per_fused_cat_mean_362
+    - triton_per_fused_cat_mean_363
+    - triton_per_fused_cat_mean_364
+    - triton_per_fused_cat_mean_365
+    - triton_per_fused_cat_mean_366
+    - triton_per_fused_cat_mean_367
+    - triton_per_fused_cat_mean_368
+    - triton_per_fused_cat_mean_369
+    - triton_per_fused_cat_mean_37
+    - triton_per_fused_cat_mean_370
+    - triton_per_fused_cat_mean_371
+    - triton_per_fused_cat_mean_372
+    - triton_per_fused_cat_mean_373
+    - triton_per_fused_cat_mean_374
+    - triton_per_fused_cat_mean_375
+    - triton_per_fused_cat_mean_376
+    - triton_per_fused_cat_mean_377
+    - triton_per_fused_cat_mean_378
+    - triton_per_fused_cat_mean_379
+    - triton_per_fused_cat_mean_38
+    - triton_per_fused_cat_mean_380
+    - triton_per_fused_cat_mean_381
+    - triton_per_fused_cat_mean_382
+    - triton_per_fused_cat_mean_383
+    - triton_per_fused_cat_mean_384
+    - triton_per_fused_cat_mean_385
+    - triton_per_fused_cat_mean_386
+    - triton_per_fused_cat_mean_387
+    - triton_per_fused_cat_mean_388
+    - triton_per_fused_cat_mean_389
+    - triton_per_fused_cat_mean_39
+    - triton_per_fused_cat_mean_390
+    - triton_per_fused_cat_mean_391
+    - triton_per_fused_cat_mean_392
+    - triton_per_fused_cat_mean_393
+    - triton_per_fused_cat_mean_394
+    - triton_per_fused_cat_mean_395
+    - triton_per_fused_cat_mean_396
+    - triton_per_fused_cat_mean_397
+    - triton_per_fused_cat_mean_398
+    - triton_per_fused_cat_mean_399
+    - triton_per_fused_cat_mean_4
+    - triton_per_fused_cat_mean_40
+    - triton_per_fused_cat_mean_400
+    - triton_per_fused_cat_mean_401
+    - triton_per_fused_cat_mean_402
+    - triton_per_fused_cat_mean_403
+    - triton_per_fused_cat_mean_404
+    - triton_per_fused_cat_mean_405
+    - triton_per_fused_cat_mean_406
+    - triton_per_fused_cat_mean_407
+    - triton_per_fused_cat_mean_408
+    - triton_per_fused_cat_mean_409
+    - triton_per_fused_cat_mean_41
+    - triton_per_fused_cat_mean_410
+    - triton_per_fused_cat_mean_411
+    - triton_per_fused_cat_mean_412
+    - triton_per_fused_cat_mean_413
+    - triton_per_fused_cat_mean_414
+    - triton_per_fused_cat_mean_415
+    - triton_per_fused_cat_mean_416
+    - triton_per_fused_cat_mean_417
+    - triton_per_fused_cat_mean_418
+    - triton_per_fused_cat_mean_419
+    - triton_per_fused_cat_mean_42
+    - triton_per_fused_cat_mean_420
+    - triton_per_fused_cat_mean_421
+    - triton_per_fused_cat_mean_422
+    - triton_per_fused_cat_mean_423
+    - triton_per_fused_cat_mean_424
+    - triton_per_fused_cat_mean_425
+    - triton_per_fused_cat_mean_426
+    - triton_per_fused_cat_mean_427
+    - triton_per_fused_cat_mean_428
+    - triton_per_fused_cat_mean_429
+    - triton_per_fused_cat_mean_43
+    - triton_per_fused_cat_mean_430
+    - triton_per_fused_cat_mean_431
+    - triton_per_fused_cat_mean_432
+    - triton_per_fused_cat_mean_433
+    - triton_per_fused_cat_mean_434
+    - triton_per_fused_cat_mean_435
+    - triton_per_fused_cat_mean_436
+    - triton_per_fused_cat_mean_437
+    - triton_per_fused_cat_mean_438
+    - triton_per_fused_cat_mean_439
+    - triton_per_fused_cat_mean_44
+    - triton_per_fused_cat_mean_440
+    - triton_per_fused_cat_mean_441
+    - triton_per_fused_cat_mean_442
+    - triton_per_fused_cat_mean_443
+    - triton_per_fused_cat_mean_444
+    - triton_per_fused_cat_mean_445
+    - triton_per_fused_cat_mean_446
+    - triton_per_fused_cat_mean_447
+    - triton_per_fused_cat_mean_448
+    - triton_per_fused_cat_mean_449
+    - triton_per_fused_cat_mean_45
+    - triton_per_fused_cat_mean_450
+    - triton_per_fused_cat_mean_451
+    - triton_per_fused_cat_mean_452
+    - triton_per_fused_cat_mean_453
+    - triton_per_fused_cat_mean_454
+    - triton_per_fused_cat_mean_455
+    - triton_per_fused_cat_mean_456
+    - triton_per_fused_cat_mean_457
+    - triton_per_fused_cat_mean_458
+    - triton_per_fused_cat_mean_459
+    - triton_per_fused_cat_mean_46
+    - triton_per_fused_cat_mean_460
+    - triton_per_fused_cat_mean_461
+    - triton_per_fused_cat_mean_462
+    - triton_per_fused_cat_mean_463
+    - triton_per_fused_cat_mean_464
+    - triton_per_fused_cat_mean_465
+    - triton_per_fused_cat_mean_466
+    - triton_per_fused_cat_mean_467
+    - triton_per_fused_cat_mean_468
+    - triton_per_fused_cat_mean_469
+    - triton_per_fused_cat_mean_47
+    - triton_per_fused_cat_mean_470
+    - triton_per_fused_cat_mean_471
+    - triton_per_fused_cat_mean_472
+    - triton_per_fused_cat_mean_473
+    - triton_per_fused_cat_mean_474
+    - triton_per_fused_cat_mean_475
+    - triton_per_fused_cat_mean_476
+    - triton_per_fused_cat_mean_477
+    - triton_per_fused_cat_mean_478
+    - triton_per_fused_cat_mean_479
+    - triton_per_fused_cat_mean_48
+    - triton_per_fused_cat_mean_480
+    - triton_per_fused_cat_mean_481
+    - triton_per_fused_cat_mean_482
+    - triton_per_fused_cat_mean_483
+    - triton_per_fused_cat_mean_484
+    - triton_per_fused_cat_mean_485
+    - triton_per_fused_cat_mean_486
+    - triton_per_fused_cat_mean_487
+    - triton_per_fused_cat_mean_488
+    - triton_per_fused_cat_mean_489
+    - triton_per_fused_cat_mean_49
+    - triton_per_fused_cat_mean_490
+    - triton_per_fused_cat_mean_491
+    - triton_per_fused_cat_mean_492
+    - triton_per_fused_cat_mean_493
+    - triton_per_fused_cat_mean_494
+    - triton_per_fused_cat_mean_495
+    - triton_per_fused_cat_mean_496
+    - triton_per_fused_cat_mean_497
+    - triton_per_fused_cat_mean_498
+    - triton_per_fused_cat_mean_499
+    - triton_per_fused_cat_mean_5
+    - triton_per_fused_cat_mean_50
+    - triton_per_fused_cat_mean_500
+    - triton_per_fused_cat_mean_501
+    - triton_per_fused_cat_mean_502
+    - triton_per_fused_cat_mean_503
+    - triton_per_fused_cat_mean_504
+    - triton_per_fused_cat_mean_505
+    - triton_per_fused_cat_mean_506
+    - triton_per_fused_cat_mean_507
+    - triton_per_fused_cat_mean_508
+    - triton_per_fused_cat_mean_509
+    - triton_per_fused_cat_mean_51
+    - triton_per_fused_cat_mean_510
+    - triton_per_fused_cat_mean_511
+    - triton_per_fused_cat_mean_512
+    - triton_per_fused_cat_mean_513
+    - triton_per_fused_cat_mean_514
+    - triton_per_fused_cat_mean_515
+    - triton_per_fused_cat_mean_516
+    - triton_per_fused_cat_mean_517
+    - triton_per_fused_cat_mean_518
+    - triton_per_fused_cat_mean_519
+    - triton_per_fused_cat_mean_52
+    - triton_per_fused_cat_mean_520
+    - triton_per_fused_cat_mean_521
+    - triton_per_fused_cat_mean_522
+    - triton_per_fused_cat_mean_523
+    - triton_per_fused_cat_mean_524
+    - triton_per_fused_cat_mean_525
+    - triton_per_fused_cat_mean_526
+    - triton_per_fused_cat_mean_527
+    - triton_per_fused_cat_mean_528
+    - triton_per_fused_cat_mean_529
+    - triton_per_fused_cat_mean_53
+    - triton_per_fused_cat_mean_530
+    - triton_per_fused_cat_mean_531
+    - triton_per_fused_cat_mean_532
+    - triton_per_fused_cat_mean_533
+    - triton_per_fused_cat_mean_534
+    - triton_per_fused_cat_mean_535
+    - triton_per_fused_cat_mean_536
+    - triton_per_fused_cat_mean_537
+    - triton_per_fused_cat_mean_538
+    - triton_per_fused_cat_mean_539
+    - triton_per_fused_cat_mean_54
+    - triton_per_fused_cat_mean_540
+    - triton_per_fused_cat_mean_541
+    - triton_per_fused_cat_mean_542
+    - triton_per_fused_cat_mean_543
+    - triton_per_fused_cat_mean_544
+    - triton_per_fused_cat_mean_545
+    - triton_per_fused_cat_mean_546
+    - triton_per_fused_cat_mean_547
+    - triton_per_fused_cat_mean_548
+    - triton_per_fused_cat_mean_549
+    - triton_per_fused_cat_mean_55
+    - triton_per_fused_cat_mean_550
+    - triton_per_fused_cat_mean_551
+    - triton_per_fused_cat_mean_552
+    - triton_per_fused_cat_mean_553
+    - triton_per_fused_cat_mean_554
+    - triton_per_fused_cat_mean_555
+    - triton_per_fused_cat_mean_556
+    - triton_per_fused_cat_mean_557
+    - triton_per_fused_cat_mean_558
+    - triton_per_fused_cat_mean_559
+    - triton_per_fused_cat_mean_56
+    - triton_per_fused_cat_mean_560
+    - triton_per_fused_cat_mean_561
+    - triton_per_fused_cat_mean_562
+    - triton_per_fused_cat_mean_563
+    - triton_per_fused_cat_mean_564
+    - triton_per_fused_cat_mean_565
+    - triton_per_fused_cat_mean_566
+    - triton_per_fused_cat_mean_567
+    - triton_per_fused_cat_mean_568
+    - triton_per_fused_cat_mean_569
+    - triton_per_fused_cat_mean_57
+    - triton_per_fused_cat_mean_570
+    - triton_per_fused_cat_mean_572
+    - triton_per_fused_cat_mean_574
+    - triton_per_fused_cat_mean_576
+    - triton_per_fused_cat_mean_578
+    - triton_per_fused_cat_mean_58
+    - triton_per_fused_cat_mean_581
+    - triton_per_fused_cat_mean_583
+    - triton_per_fused_cat_mean_585
+    - triton_per_fused_cat_mean_587
+    - triton_per_fused_cat_mean_59
+    - triton_per_fused_cat_mean_6
+    - triton_per_fused_cat_mean_60
+    - triton_per_fused_cat_mean_61
+    - triton_per_fused_cat_mean_62
+    - triton_per_fused_cat_mean_63
+    - triton_per_fused_cat_mean_64
+    - triton_per_fused_cat_mean_65
+    - triton_per_fused_cat_mean_66
+    - triton_per_fused_cat_mean_67
+    - triton_per_fused_cat_mean_68
+    - triton_per_fused_cat_mean_69
+    - triton_per_fused_cat_mean_7
+    - triton_per_fused_cat_mean_70
+    - triton_per_fused_cat_mean_71
+    - triton_per_fused_cat_mean_72
+    - triton_per_fused_cat_mean_73
+    - triton_per_fused_cat_mean_74
+    - triton_per_fused_cat_mean_75
+    - triton_per_fused_cat_mean_76
+    - triton_per_fused_cat_mean_77
+    - triton_per_fused_cat_mean_78
+    - triton_per_fused_cat_mean_79
+    - triton_per_fused_cat_mean_8
+    - triton_per_fused_cat_mean_80
+    - triton_per_fused_cat_mean_81
+    - triton_per_fused_cat_mean_82
+    - triton_per_fused_cat_mean_83
+    - triton_per_fused_cat_mean_84
+    - triton_per_fused_cat_mean_85
+    - triton_per_fused_cat_mean_86
+    - triton_per_fused_cat_mean_87
+    - triton_per_fused_cat_mean_88
+    - triton_per_fused_cat_mean_89
+    - triton_per_fused_cat_mean_9
+    - triton_per_fused_cat_mean_90
+    - triton_per_fused_cat_mean_91
+    - triton_per_fused_cat_mean_92
+    - triton_per_fused_cat_mean_93
+    - triton_per_fused_cat_mean_94
+    - triton_per_fused_cat_mean_95
+    - triton_per_fused_cat_mean_96
+    - triton_per_fused_cat_mean_97
+    - triton_per_fused_cat_mean_98
+    - triton_per_fused_cat_mean_99
+    - triton_poi_fused_cat_114
+    - triton_poi_fused_cat_115
+    - triton_poi_fused_cat_124
+    - triton_poi_fused_cat_125
+    - triton_poi_fused_cat_140
+    - triton_poi_fused_cat_141
+    - triton_poi_fused_cat_142
+    - triton_poi_fused_cat_174
+    - triton_poi_fused_cat_175
+    - triton_poi_fused_cat_176
+    - triton_poi_fused_cat_177
+    - triton_poi_fused_cat_178
+    - triton_poi_fused_cat_181
+    - triton_poi_fused_cat_182
+    - triton_poi_fused_cat_183
+    - triton_poi_fused_cat_184
+    - triton_poi_fused_cat_212
+    - triton_poi_fused_cat_213
+    - triton_poi_fused_cat_214
+    - triton_poi_fused_cat_215
+    - triton_poi_fused_cat_216
+    - triton_poi_fused_cat_232
+    - triton_poi_fused_cat_233
+    - triton_poi_fused_cat_234
+    - triton_poi_fused_cat_235
+    - triton_poi_fused_cat_248
+    - triton_poi_fused_cat_249
+    - triton_poi_fused_cat_250
+    - triton_poi_fused_cat_251
+    - triton_poi_fused_cat_252
+    - triton_poi_fused_cat_253
+    - triton_poi_fused_cat_271
+    - triton_poi_fused_cat_272
+    - triton_poi_fused_cat_273
+    - triton_poi_fused_cat_274
+    - triton_poi_fused_cat_275
+    - triton_poi_fused_cat_276
+    - triton_poi_fused_cat_277
+    - triton_poi_fused_cat_278
+    - triton_poi_fused_cat_279
+    - triton_poi_fused_cat_283
+    - triton_poi_fused_cat_284
+    - triton_poi_fused_cat_285
+    - triton_poi_fused_cat_286
+    - triton_poi_fused_cat_287
+    - triton_poi_fused_cat_336
+    - triton_poi_fused_cat_337
+    - triton_poi_fused_cat_338
+    - triton_poi_fused_cat_339
+    - triton_poi_fused_cat_340
+    - triton_poi_fused_cat_4
+    - triton_poi_fused_cat_413
+    - triton_poi_fused_cat_414
+    - triton_poi_fused_cat_415
+    - triton_poi_fused_cat_416
+    - triton_poi_fused_cat_417
+    - triton_poi_fused_cat_418
+    - triton_poi_fused_cat_427
+    - triton_poi_fused_cat_428
+    - triton_poi_fused_cat_429
+    - triton_poi_fused_cat_430
+    - triton_poi_fused_cat_431
+    - triton_poi_fused_cat_432
+    - triton_poi_fused_cat_433
+    - triton_red_fused_cat_mean_0
+    - triton_red_fused_cat_mean_1
+    - triton_red_fused_cat_mean_10
+    - triton_red_fused_cat_mean_100
+    - triton_red_fused_cat_mean_101
+    - triton_red_fused_cat_mean_102
+    - triton_red_fused_cat_mean_103
+    - triton_red_fused_cat_mean_104
+    - triton_red_fused_cat_mean_105
+    - triton_red_fused_cat_mean_106
+    - triton_red_fused_cat_mean_107
+    - triton_red_fused_cat_mean_108
+    - triton_red_fused_cat_mean_109
+    - triton_red_fused_cat_mean_11
+    - triton_red_fused_cat_mean_110
+    - triton_red_fused_cat_mean_111
+    - triton_red_fused_cat_mean_112
+    - triton_red_fused_cat_mean_113
+    - triton_red_fused_cat_mean_114
+    - triton_red_fused_cat_mean_115
+    - triton_red_fused_cat_mean_117
+    - triton_red_fused_cat_mean_118
+    - triton_red_fused_cat_mean_119
+    - triton_red_fused_cat_mean_12
+    - triton_red_fused_cat_mean_120
+    - triton_red_fused_cat_mean_121
+    - triton_red_fused_cat_mean_122
+    - triton_red_fused_cat_mean_124
+    - triton_red_fused_cat_mean_125
+    - triton_red_fused_cat_mean_126
+    - triton_red_fused_cat_mean_127
+    - triton_red_fused_cat_mean_128
+    - triton_red_fused_cat_mean_129
+    - triton_red_fused_cat_mean_13
+    - triton_red_fused_cat_mean_130
+    - triton_red_fused_cat_mean_131
+    - triton_red_fused_cat_mean_132
+    - triton_red_fused_cat_mean_133
+    - triton_red_fused_cat_mean_134
+    - triton_red_fused_cat_mean_135
+    - triton_red_fused_cat_mean_136
+    - triton_red_fused_cat_mean_137
+    - triton_red_fused_cat_mean_138
+    - triton_red_fused_cat_mean_139
+    - triton_red_fused_cat_mean_14
+    - triton_red_fused_cat_mean_140
+    - triton_red_fused_cat_mean_141
+    - triton_red_fused_cat_mean_142
+    - triton_red_fused_cat_mean_143
+    - triton_red_fused_cat_mean_144
+    - triton_red_fused_cat_mean_145
+    - triton_red_fused_cat_mean_146
+    - triton_red_fused_cat_mean_147
+    - triton_red_fused_cat_mean_148
+    - triton_red_fused_cat_mean_149
+    - triton_red_fused_cat_mean_15
+    - triton_red_fused_cat_mean_150
+    - triton_red_fused_cat_mean_151
+    - triton_red_fused_cat_mean_152
+    - triton_red_fused_cat_mean_153
+    - triton_red_fused_cat_mean_154
+    - triton_red_fused_cat_mean_155
+    - triton_red_fused_cat_mean_156
+    - triton_red_fused_cat_mean_157
+    - triton_red_fused_cat_mean_158
+    - triton_red_fused_cat_mean_159
+    - triton_red_fused_cat_mean_16
+    - triton_red_fused_cat_mean_160
+    - triton_red_fused_cat_mean_161
+    - triton_red_fused_cat_mean_162
+    - triton_red_fused_cat_mean_163
+    - triton_red_fused_cat_mean_164
+    - triton_red_fused_cat_mean_165
+    - triton_red_fused_cat_mean_166
+    - triton_red_fused_cat_mean_167
+    - triton_red_fused_cat_mean_168
+    - triton_red_fused_cat_mean_169
+    - triton_red_fused_cat_mean_17
+    - triton_red_fused_cat_mean_171
+    - triton_red_fused_cat_mean_172
+    - triton_red_fused_cat_mean_173
+    - triton_red_fused_cat_mean_174
+    - triton_red_fused_cat_mean_175
+    - triton_red_fused_cat_mean_176
+    - triton_red_fused_cat_mean_177
+    - triton_red_fused_cat_mean_178
+    - triton_red_fused_cat_mean_179
+    - triton_red_fused_cat_mean_18
+    - triton_red_fused_cat_mean_180
+    - triton_red_fused_cat_mean_181
+    - triton_red_fused_cat_mean_182
+    - triton_red_fused_cat_mean_183
+    - triton_red_fused_cat_mean_184
+    - triton_red_fused_cat_mean_185
+    - triton_red_fused_cat_mean_186
+    - triton_red_fused_cat_mean_187
+    - triton_red_fused_cat_mean_188
+    - triton_red_fused_cat_mean_189
+    - triton_red_fused_cat_mean_19
+    - triton_red_fused_cat_mean_190
+    - triton_red_fused_cat_mean_191
+    - triton_red_fused_cat_mean_194
+    - triton_red_fused_cat_mean_196
+    - triton_red_fused_cat_mean_197
+    - triton_red_fused_cat_mean_199
+    - triton_red_fused_cat_mean_2
+    - triton_red_fused_cat_mean_20
+    - triton_red_fused_cat_mean_200
+    - triton_red_fused_cat_mean_201
+    - triton_red_fused_cat_mean_202
+    - triton_red_fused_cat_mean_203
+    - triton_red_fused_cat_mean_205
+    - triton_red_fused_cat_mean_206
+    - triton_red_fused_cat_mean_207
+    - triton_red_fused_cat_mean_209
+    - triton_red_fused_cat_mean_21
+    - triton_red_fused_cat_mean_210
+    - triton_red_fused_cat_mean_211
+    - triton_red_fused_cat_mean_212
+    - triton_red_fused_cat_mean_213
+    - triton_red_fused_cat_mean_214
+    - triton_red_fused_cat_mean_215
+    - triton_red_fused_cat_mean_216
+    - triton_red_fused_cat_mean_217
+    - triton_red_fused_cat_mean_219
+    - triton_red_fused_cat_mean_22
+    - triton_red_fused_cat_mean_220
+    - triton_red_fused_cat_mean_222
+    - triton_red_fused_cat_mean_223
+    - triton_red_fused_cat_mean_224
+    - triton_red_fused_cat_mean_225
+    - triton_red_fused_cat_mean_226
+    - triton_red_fused_cat_mean_227
+    - triton_red_fused_cat_mean_228
+    - triton_red_fused_cat_mean_229
+    - triton_red_fused_cat_mean_23
+    - triton_red_fused_cat_mean_231
+    - triton_red_fused_cat_mean_232
+    - triton_red_fused_cat_mean_233
+    - triton_red_fused_cat_mean_234
+    - triton_red_fused_cat_mean_236
+    - triton_red_fused_cat_mean_237
+    - triton_red_fused_cat_mean_238
+    - triton_red_fused_cat_mean_239
+    - triton_red_fused_cat_mean_24
+    - triton_red_fused_cat_mean_240
+    - triton_red_fused_cat_mean_241
+    - triton_red_fused_cat_mean_242
+    - triton_red_fused_cat_mean_244
+    - triton_red_fused_cat_mean_245
+    - triton_red_fused_cat_mean_247
+    - triton_red_fused_cat_mean_248
+    - triton_red_fused_cat_mean_249
+    - triton_red_fused_cat_mean_25
+    - triton_red_fused_cat_mean_250
+    - triton_red_fused_cat_mean_251
+    - triton_red_fused_cat_mean_252
+    - triton_red_fused_cat_mean_253
+    - triton_red_fused_cat_mean_255
+    - triton_red_fused_cat_mean_256
+    - triton_red_fused_cat_mean_257
+    - triton_red_fused_cat_mean_258
+    - triton_red_fused_cat_mean_259
+    - triton_red_fused_cat_mean_26
+    - triton_red_fused_cat_mean_260
+    - triton_red_fused_cat_mean_261
+    - triton_red_fused_cat_mean_263
+    - triton_red_fused_cat_mean_264
+    - triton_red_fused_cat_mean_265
+    - triton_red_fused_cat_mean_267
+    - triton_red_fused_cat_mean_27
+    - triton_red_fused_cat_mean_270
+    - triton_red_fused_cat_mean_271
+    - triton_red_fused_cat_mean_272
+    - triton_red_fused_cat_mean_274
+    - triton_red_fused_cat_mean_276
+    - triton_red_fused_cat_mean_277
+    - triton_red_fused_cat_mean_278
+    - triton_red_fused_cat_mean_28
+    - triton_red_fused_cat_mean_280
+    - triton_red_fused_cat_mean_282
+    - triton_red_fused_cat_mean_285
+    - triton_red_fused_cat_mean_286
+    - triton_red_fused_cat_mean_287
+    - triton_red_fused_cat_mean_29
+    - triton_red_fused_cat_mean_290
+    - triton_red_fused_cat_mean_295
+    - triton_red_fused_cat_mean_296
+    - triton_red_fused_cat_mean_298
+    - triton_red_fused_cat_mean_299
+    - triton_red_fused_cat_mean_3
+    - triton_red_fused_cat_mean_30
+    - triton_red_fused_cat_mean_300
+    - triton_red_fused_cat_mean_301
+    - triton_red_fused_cat_mean_304
+    - triton_red_fused_cat_mean_305
+    - triton_red_fused_cat_mean_31
+    - triton_red_fused_cat_mean_310
+    - triton_red_fused_cat_mean_312
+    - triton_red_fused_cat_mean_314
+    - triton_red_fused_cat_mean_315
+    - triton_red_fused_cat_mean_319
+    - triton_red_fused_cat_mean_32
+    - triton_red_fused_cat_mean_320
+    - triton_red_fused_cat_mean_321
+    - triton_red_fused_cat_mean_322
+    - triton_red_fused_cat_mean_325
+    - triton_red_fused_cat_mean_328
+    - triton_red_fused_cat_mean_33
+    - triton_red_fused_cat_mean_330
+    - triton_red_fused_cat_mean_333
+    - triton_red_fused_cat_mean_336
+    - triton_red_fused_cat_mean_337
+    - triton_red_fused_cat_mean_34
+    - triton_red_fused_cat_mean_342
+    - triton_red_fused_cat_mean_346
+    - triton_red_fused_cat_mean_347
+    - triton_red_fused_cat_mean_348
+    - triton_red_fused_cat_mean_35
+    - triton_red_fused_cat_mean_350
+    - triton_red_fused_cat_mean_352
+    - triton_red_fused_cat_mean_353
+    - triton_red_fused_cat_mean_356
+    - triton_red_fused_cat_mean_358
+    - triton_red_fused_cat_mean_36
+    - triton_red_fused_cat_mean_361
+    - triton_red_fused_cat_mean_363
+    - triton_red_fused_cat_mean_364
+    - triton_red_fused_cat_mean_365
+    - triton_red_fused_cat_mean_368
+    - triton_red_fused_cat_mean_369
+    - triton_red_fused_cat_mean_37
+    - triton_red_fused_cat_mean_371
+    - triton_red_fused_cat_mean_372
+    - triton_red_fused_cat_mean_375
+    - triton_red_fused_cat_mean_378
+    - triton_red_fused_cat_mean_38
+    - triton_red_fused_cat_mean_382
+    - triton_red_fused_cat_mean_383
+    - triton_red_fused_cat_mean_39
+    - triton_red_fused_cat_mean_390
+    - triton_red_fused_cat_mean_391
+    - triton_red_fused_cat_mean_397
+    - triton_red_fused_cat_mean_4
+    - triton_red_fused_cat_mean_40
+    - triton_red_fused_cat_mean_402
+    - triton_red_fused_cat_mean_405
+    - triton_red_fused_cat_mean_41
+    - triton_red_fused_cat_mean_410
+    - triton_red_fused_cat_mean_411
+    - triton_red_fused_cat_mean_42
+    - triton_red_fused_cat_mean_43
+    - triton_red_fused_cat_mean_438
+    - triton_red_fused_cat_mean_439
+    - triton_red_fused_cat_mean_44
+    - triton_red_fused_cat_mean_45
+    - triton_red_fused_cat_mean_452
+    - triton_red_fused_cat_mean_46
+    - triton_red_fused_cat_mean_47
+    - triton_red_fused_cat_mean_479
+    - triton_red_fused_cat_mean_49
+    - triton_red_fused_cat_mean_494
+    - triton_red_fused_cat_mean_495
+    - triton_red_fused_cat_mean_5
+    - triton_red_fused_cat_mean_50
+    - triton_red_fused_cat_mean_500
+    - triton_red_fused_cat_mean_509
+    - triton_red_fused_cat_mean_51
+    - triton_red_fused_cat_mean_52
+    - triton_red_fused_cat_mean_53
+    - triton_red_fused_cat_mean_54
+    - triton_red_fused_cat_mean_548
+    - triton_red_fused_cat_mean_55
+    - triton_red_fused_cat_mean_551
+    - triton_red_fused_cat_mean_56
+    - triton_red_fused_cat_mean_57
+    - triton_red_fused_cat_mean_579
+    - triton_red_fused_cat_mean_58
+    - triton_red_fused_cat_mean_59
+    - triton_red_fused_cat_mean_6
+    - triton_red_fused_cat_mean_60
+    - triton_red_fused_cat_mean_61
+    - triton_red_fused_cat_mean_62
+    - triton_red_fused_cat_mean_63
+    - triton_red_fused_cat_mean_64
+    - triton_red_fused_cat_mean_65
+    - triton_red_fused_cat_mean_66
+    - triton_red_fused_cat_mean_67
+    - triton_red_fused_cat_mean_68
+    - triton_red_fused_cat_mean_69
+    - triton_red_fused_cat_mean_7
+    - triton_red_fused_cat_mean_70
+    - triton_red_fused_cat_mean_72
+    - triton_red_fused_cat_mean_73
+    - triton_red_fused_cat_mean_74
+    - triton_red_fused_cat_mean_75
+    - triton_red_fused_cat_mean_76
+    - triton_red_fused_cat_mean_77
+    - triton_red_fused_cat_mean_78
+    - triton_red_fused_cat_mean_79
+    - triton_red_fused_cat_mean_8
+    - triton_red_fused_cat_mean_80
+    - triton_red_fused_cat_mean_81
+    - triton_red_fused_cat_mean_82
+    - triton_red_fused_cat_mean_83
+    - triton_red_fused_cat_mean_84
+    - triton_red_fused_cat_mean_85
+    - triton_red_fused_cat_mean_86
+    - triton_red_fused_cat_mean_87
+    - triton_red_fused_cat_mean_88
+    - triton_red_fused_cat_mean_89
+    - triton_red_fused_cat_mean_9
+    - triton_red_fused_cat_mean_91
+    - triton_red_fused_cat_mean_92
+    - triton_red_fused_cat_mean_93
+    - triton_red_fused_cat_mean_94
+    - triton_red_fused_cat_mean_95
+    - triton_red_fused_cat_mean_96
+    - triton_red_fused_cat_mean_97
+    - triton_red_fused_cat_mean_98
+    - triton_red_fused_cat_mean_99
+    - triton_red_fused_mean_0
+    - triton_red_fused_mean_1
+    - triton_red_fused_mean_10
+    - triton_red_fused_mean_100
+    - triton_red_fused_mean_101
+    - triton_red_fused_mean_102
+    - triton_red_fused_mean_103
+    - triton_red_fused_mean_104
+    - triton_red_fused_mean_105
+    - triton_red_fused_mean_106
+    - triton_red_fused_mean_107
+    - triton_red_fused_mean_108
+    - triton_red_fused_mean_109
+    - triton_red_fused_mean_11
+    - triton_red_fused_mean_110
+    - triton_red_fused_mean_111
+    - triton_red_fused_mean_112
+    - triton_red_fused_mean_113
+    - triton_red_fused_mean_114
+    - triton_red_fused_mean_115
+    - triton_red_fused_mean_116
+    - triton_red_fused_mean_117
+    - triton_red_fused_mean_118
+    - triton_red_fused_mean_119
+    - triton_red_fused_mean_12
+    - triton_red_fused_mean_120
+    - triton_red_fused_mean_121
+    - triton_red_fused_mean_122
+    - triton_red_fused_mean_123
+    - triton_red_fused_mean_124
+    - triton_red_fused_mean_125
+    - triton_red_fused_mean_126
+    - triton_red_fused_mean_127
+    - triton_red_fused_mean_128
+    - triton_red_fused_mean_129
+    - triton_red_fused_mean_13
+    - triton_red_fused_mean_130
+    - triton_red_fused_mean_131
+    - triton_red_fused_mean_132
+    - triton_red_fused_mean_133
+    - triton_red_fused_mean_134
+    - triton_red_fused_mean_135
+    - triton_red_fused_mean_136
+    - triton_red_fused_mean_137
+    - triton_red_fused_mean_138
+    - triton_red_fused_mean_139
+    - triton_red_fused_mean_14
+    - triton_red_fused_mean_140
+    - triton_red_fused_mean_141
+    - triton_red_fused_mean_142
+    - triton_red_fused_mean_143
+    - triton_red_fused_mean_144
+    - triton_red_fused_mean_145
+    - triton_red_fused_mean_146
+    - triton_red_fused_mean_147
+    - triton_red_fused_mean_148
+    - triton_red_fused_mean_149
+    - triton_red_fused_mean_15
+    - triton_red_fused_mean_150
+    - triton_red_fused_mean_151
+    - triton_red_fused_mean_152
+    - triton_red_fused_mean_153
+    - triton_red_fused_mean_154
+    - triton_red_fused_mean_155
+    - triton_red_fused_mean_156
+    - triton_red_fused_mean_157
+    - triton_red_fused_mean_158
+    - triton_red_fused_mean_159
+    - triton_red_fused_mean_16
+    - triton_red_fused_mean_160
+    - triton_red_fused_mean_161
+    - triton_red_fused_mean_162
+    - triton_red_fused_mean_163
+    - triton_red_fused_mean_164
+    - triton_red_fused_mean_165
+    - triton_red_fused_mean_166
+    - triton_red_fused_mean_167
+    - triton_red_fused_mean_168
+    - triton_red_fused_mean_169
+    - triton_red_fused_mean_17
+    - triton_red_fused_mean_170
+    - triton_red_fused_mean_171
+    - triton_red_fused_mean_172
+    - triton_red_fused_mean_173
+    - triton_red_fused_mean_174
+    - triton_red_fused_mean_175
+    - triton_red_fused_mean_176
+    - triton_red_fused_mean_177
+    - triton_red_fused_mean_178
+    - triton_red_fused_mean_179
+    - triton_red_fused_mean_18
+    - triton_red_fused_mean_180
+    - triton_red_fused_mean_181
+    - triton_red_fused_mean_182
+    - triton_red_fused_mean_183
+    - triton_red_fused_mean_184
+    - triton_red_fused_mean_185
+    - triton_red_fused_mean_186
+    - triton_red_fused_mean_187
+    - triton_red_fused_mean_188
+    - triton_red_fused_mean_189
+    - triton_red_fused_mean_19
+    - triton_red_fused_mean_190
+    - triton_red_fused_mean_191
+    - triton_red_fused_mean_192
+    - triton_red_fused_mean_193
+    - triton_red_fused_mean_194
+    - triton_red_fused_mean_195
+    - triton_red_fused_mean_196
+    - triton_red_fused_mean_197
+    - triton_red_fused_mean_198
+    - triton_red_fused_mean_199
+    - triton_red_fused_mean_2
+    - triton_red_fused_mean_20
+    - triton_red_fused_mean_200
+    - triton_red_fused_mean_201
+    - triton_red_fused_mean_202
+    - triton_red_fused_mean_203
+    - triton_red_fused_mean_204
+    - triton_red_fused_mean_205
+    - triton_red_fused_mean_206
+    - triton_red_fused_mean_207
+    - triton_red_fused_mean_208
+    - triton_red_fused_mean_209
+    - triton_red_fused_mean_21
+    - triton_red_fused_mean_210
+    - triton_red_fused_mean_211
+    - triton_red_fused_mean_212
+    - triton_red_fused_mean_213
+    - triton_red_fused_mean_214
+    - triton_red_fused_mean_215
+    - triton_red_fused_mean_216
+    - triton_red_fused_mean_217
+    - triton_red_fused_mean_218
+    - triton_red_fused_mean_219
+    - triton_red_fused_mean_22
+    - triton_red_fused_mean_220
+    - triton_red_fused_mean_221
+    - triton_red_fused_mean_222
+    - triton_red_fused_mean_223
+    - triton_red_fused_mean_224
+    - triton_red_fused_mean_225
+    - triton_red_fused_mean_226
+    - triton_red_fused_mean_227
+    - triton_red_fused_mean_228
+    - triton_red_fused_mean_229
+    - triton_red_fused_mean_23
+    - triton_red_fused_mean_230
+    - triton_red_fused_mean_231
+    - triton_red_fused_mean_232
+    - triton_red_fused_mean_233
+    - triton_red_fused_mean_234
+    - triton_red_fused_mean_235
+    - triton_red_fused_mean_236
+    - triton_red_fused_mean_237
+    - triton_red_fused_mean_238
+    - triton_red_fused_mean_239
+    - triton_red_fused_mean_24
+    - triton_red_fused_mean_240
+    - triton_red_fused_mean_241
+    - triton_red_fused_mean_242
+    - triton_red_fused_mean_243
+    - triton_red_fused_mean_244
+    - triton_red_fused_mean_245
+    - triton_red_fused_mean_246
+    - triton_red_fused_mean_247
+    - triton_red_fused_mean_248
+    - triton_red_fused_mean_249
+    - triton_red_fused_mean_25
+    - triton_red_fused_mean_250
+    - triton_red_fused_mean_251
+    - triton_red_fused_mean_252
+    - triton_red_fused_mean_253
+    - triton_red_fused_mean_254
+    - triton_red_fused_mean_255
+    - triton_red_fused_mean_256
+    - triton_red_fused_mean_257
+    - triton_red_fused_mean_258
+    - triton_red_fused_mean_259
+    - triton_red_fused_mean_26
+    - triton_red_fused_mean_260
+    - triton_red_fused_mean_261
+    - triton_red_fused_mean_262
+    - triton_red_fused_mean_263
+    - triton_red_fused_mean_264
+    - triton_red_fused_mean_265
+    - triton_red_fused_mean_266
+    - triton_red_fused_mean_267
+    - triton_red_fused_mean_268
+    - triton_red_fused_mean_269
+    - triton_red_fused_mean_27
+    - triton_red_fused_mean_270
+    - triton_red_fused_mean_271
+    - triton_red_fused_mean_272
+    - triton_red_fused_mean_273
+    - triton_red_fused_mean_274
+    - triton_red_fused_mean_275
+    - triton_red_fused_mean_276
+    - triton_red_fused_mean_277
+    - triton_red_fused_mean_278
+    - triton_red_fused_mean_279
+    - triton_red_fused_mean_28
+    - triton_red_fused_mean_280
+    - triton_red_fused_mean_281
+    - triton_red_fused_mean_282
+    - triton_red_fused_mean_283
+    - triton_red_fused_mean_284
+    - triton_red_fused_mean_285
+    - triton_red_fused_mean_286
+    - triton_red_fused_mean_287
+    - triton_red_fused_mean_288
+    - triton_red_fused_mean_289
+    - triton_red_fused_mean_29
+    - triton_red_fused_mean_290
+    - triton_red_fused_mean_291
+    - triton_red_fused_mean_292
+    - triton_red_fused_mean_293
+    - triton_red_fused_mean_294
+    - triton_red_fused_mean_295
+    - triton_red_fused_mean_296
+    - triton_red_fused_mean_297
+    - triton_red_fused_mean_298
+    - triton_red_fused_mean_299
+    - triton_red_fused_mean_3
+    - triton_red_fused_mean_30
+    - triton_red_fused_mean_300
+    - triton_red_fused_mean_301
+    - triton_red_fused_mean_302
+    - triton_red_fused_mean_303
+    - triton_red_fused_mean_304
+    - triton_red_fused_mean_305
+    - triton_red_fused_mean_306
+    - triton_red_fused_mean_307
+    - triton_red_fused_mean_308
+    - triton_red_fused_mean_309
+    - triton_red_fused_mean_31
+    - triton_red_fused_mean_310
+    - triton_red_fused_mean_311
+    - triton_red_fused_mean_312
+    - triton_red_fused_mean_313
+    - triton_red_fused_mean_314
+    - triton_red_fused_mean_315
+    - triton_red_fused_mean_316
+    - triton_red_fused_mean_317
+    - triton_red_fused_mean_318
+    - triton_red_fused_mean_32
+    - triton_red_fused_mean_320
+    - triton_red_fused_mean_322
+    - triton_red_fused_mean_323
+    - triton_red_fused_mean_324
+    - triton_red_fused_mean_325
+    - triton_red_fused_mean_326
+    - triton_red_fused_mean_327
+    - triton_red_fused_mean_328
+    - triton_red_fused_mean_329
+    - triton_red_fused_mean_33
+    - triton_red_fused_mean_330
+    - triton_red_fused_mean_331
+    - triton_red_fused_mean_332
+    - triton_red_fused_mean_333
+    - triton_red_fused_mean_334
+    - triton_red_fused_mean_335
+    - triton_red_fused_mean_336
+    - triton_red_fused_mean_337
+    - triton_red_fused_mean_338
+    - triton_red_fused_mean_339
+    - triton_red_fused_mean_34
+    - triton_red_fused_mean_340
+    - triton_red_fused_mean_341
+    - triton_red_fused_mean_342
+    - triton_red_fused_mean_343
+    - triton_red_fused_mean_344
+    - triton_red_fused_mean_345
+    - triton_red_fused_mean_346
+    - triton_red_fused_mean_347
+    - triton_red_fused_mean_348
+    - triton_red_fused_mean_349
+    - triton_red_fused_mean_35
+    - triton_red_fused_mean_350
+    - triton_red_fused_mean_351
+    - triton_red_fused_mean_352
+    - triton_red_fused_mean_353
+    - triton_red_fused_mean_354
+    - triton_red_fused_mean_355
+    - triton_red_fused_mean_356
+    - triton_red_fused_mean_357
+    - triton_red_fused_mean_358
+    - triton_red_fused_mean_359
+    - triton_red_fused_mean_36
+    - triton_red_fused_mean_360
+    - triton_red_fused_mean_361
+    - triton_red_fused_mean_362
+    - triton_red_fused_mean_363
+    - triton_red_fused_mean_364
+    - triton_red_fused_mean_365
+    - triton_red_fused_mean_366
+    - triton_red_fused_mean_367
+    - triton_red_fused_mean_368
+    - triton_red_fused_mean_369
+    - triton_red_fused_mean_37
+    - triton_red_fused_mean_370
+    - triton_red_fused_mean_371
+    - triton_red_fused_mean_372
+    - triton_red_fused_mean_373
+    - triton_red_fused_mean_374
+    - triton_red_fused_mean_375
+    - triton_red_fused_mean_376
+    - triton_red_fused_mean_377
+    - triton_red_fused_mean_378
+    - triton_red_fused_mean_379
+    - triton_red_fused_mean_38
+    - triton_red_fused_mean_380
+    - triton_red_fused_mean_381
+    - triton_red_fused_mean_382
+    - triton_red_fused_mean_383
+    - triton_red_fused_mean_384
+    - triton_red_fused_mean_385
+    - triton_red_fused_mean_386
+    - triton_red_fused_mean_387
+    - triton_red_fused_mean_388
+    - triton_red_fused_mean_389
+    - triton_red_fused_mean_39
+    - triton_red_fused_mean_390
+    - triton_red_fused_mean_391
+    - triton_red_fused_mean_392
+    - triton_red_fused_mean_393
+    - triton_red_fused_mean_394
+    - triton_red_fused_mean_395
+    - triton_red_fused_mean_396
+    - triton_red_fused_mean_398
+    - triton_red_fused_mean_399
+    - triton_red_fused_mean_4
+    - triton_red_fused_mean_40
+    - triton_red_fused_mean_400
+    - triton_red_fused_mean_401
+    - triton_red_fused_mean_402
+    - triton_red_fused_mean_403
+    - triton_red_fused_mean_404
+    - triton_red_fused_mean_405
+    - triton_red_fused_mean_406
+    - triton_red_fused_mean_407
+    - triton_red_fused_mean_408
+    - triton_red_fused_mean_409
+    - triton_red_fused_mean_41
+    - triton_red_fused_mean_410
+    - triton_red_fused_mean_411
+    - triton_red_fused_mean_412
+    - triton_red_fused_mean_413
+    - triton_red_fused_mean_414
+    - triton_red_fused_mean_415
+    - triton_red_fused_mean_416
+    - triton_red_fused_mean_417
+    - triton_red_fused_mean_418
+    - triton_red_fused_mean_419
+    - triton_red_fused_mean_42
+    - triton_red_fused_mean_420
+    - triton_red_fused_mean_421
+    - triton_red_fused_mean_422
+    - triton_red_fused_mean_423
+    - triton_red_fused_mean_424
+    - triton_red_fused_mean_425
+    - triton_red_fused_mean_426
+    - triton_red_fused_mean_427
+    - triton_red_fused_mean_428
+    - triton_red_fused_mean_429
+    - triton_red_fused_mean_43
+    - triton_red_fused_mean_430
+    - triton_red_fused_mean_431
+    - triton_red_fused_mean_432
+    - triton_red_fused_mean_433
+    - triton_red_fused_mean_434
+    - triton_red_fused_mean_435
+    - triton_red_fused_mean_436
+    - triton_red_fused_mean_437
+    - triton_red_fused_mean_438
+    - triton_red_fused_mean_439
+    - triton_red_fused_mean_44
+    - triton_red_fused_mean_440
+    - triton_red_fused_mean_441
+    - triton_red_fused_mean_442
+    - triton_red_fused_mean_443
+    - triton_red_fused_mean_444
+    - triton_red_fused_mean_445
+    - triton_red_fused_mean_446
+    - triton_red_fused_mean_447
+    - triton_red_fused_mean_448
+    - triton_red_fused_mean_449
+    - triton_red_fused_mean_45
+    - triton_red_fused_mean_450
+    - triton_red_fused_mean_451
+    - triton_red_fused_mean_452
+    - triton_red_fused_mean_453
+    - triton_red_fused_mean_454
+    - triton_red_fused_mean_455
+    - triton_red_fused_mean_456
+    - triton_red_fused_mean_457
+    - triton_red_fused_mean_458
+    - triton_red_fused_mean_459
+    - triton_red_fused_mean_46
+    - triton_red_fused_mean_460
+    - triton_red_fused_mean_461
+    - triton_red_fused_mean_462
+    - triton_red_fused_mean_463
+    - triton_red_fused_mean_464
+    - triton_red_fused_mean_465
+    - triton_red_fused_mean_466
+    - triton_red_fused_mean_467
+    - triton_red_fused_mean_468
+    - triton_red_fused_mean_469
+    - triton_red_fused_mean_47
+    - triton_red_fused_mean_470
+    - triton_red_fused_mean_471
+    - triton_red_fused_mean_472
+    - triton_red_fused_mean_473
+    - triton_red_fused_mean_474
+    - triton_red_fused_mean_475
+    - triton_red_fused_mean_476
+    - triton_red_fused_mean_477
+    - triton_red_fused_mean_478
+    - triton_red_fused_mean_479
+    - triton_red_fused_mean_48
+    - triton_red_fused_mean_480
+    - triton_red_fused_mean_481
+    - triton_red_fused_mean_482
+    - triton_red_fused_mean_483
+    - triton_red_fused_mean_484
+    - triton_red_fused_mean_485
+    - triton_red_fused_mean_486
+    - triton_red_fused_mean_487
+    - triton_red_fused_mean_488
+    - triton_red_fused_mean_489
+    - triton_red_fused_mean_49
+    - triton_red_fused_mean_490
+    - triton_red_fused_mean_491
+    - triton_red_fused_mean_492
+    - triton_red_fused_mean_493
+    - triton_red_fused_mean_494
+    - triton_red_fused_mean_495
+    - triton_red_fused_mean_496
+    - triton_red_fused_mean_497
+    - triton_red_fused_mean_498
+    - triton_red_fused_mean_499
+    - triton_red_fused_mean_5
+    - triton_red_fused_mean_50
+    - triton_red_fused_mean_500
+    - triton_red_fused_mean_501
+    - triton_red_fused_mean_502
+    - triton_red_fused_mean_503
+    - triton_red_fused_mean_504
+    - triton_red_fused_mean_505
+    - triton_red_fused_mean_506
+    - triton_red_fused_mean_507
+    - triton_red_fused_mean_508
+    - triton_red_fused_mean_509
+    - triton_red_fused_mean_51
+    - triton_red_fused_mean_510
+    - triton_red_fused_mean_511
+    - triton_red_fused_mean_512
+    - triton_red_fused_mean_513
+    - triton_red_fused_mean_514
+    - triton_red_fused_mean_515
+    - triton_red_fused_mean_516
+    - triton_red_fused_mean_517
+    - triton_red_fused_mean_518
+    - triton_red_fused_mean_519
+    - triton_red_fused_mean_52
+    - triton_red_fused_mean_520
+    - triton_red_fused_mean_521
+    - triton_red_fused_mean_522
+    - triton_red_fused_mean_523
+    - triton_red_fused_mean_524
+    - triton_red_fused_mean_525
+    - triton_red_fused_mean_526
+    - triton_red_fused_mean_527
+    - triton_red_fused_mean_528
+    - triton_red_fused_mean_529
+    - triton_red_fused_mean_53
+    - triton_red_fused_mean_530
+    - triton_red_fused_mean_531
+    - triton_red_fused_mean_532
+    - triton_red_fused_mean_533
+    - triton_red_fused_mean_534
+    - triton_red_fused_mean_535
+    - triton_red_fused_mean_536
+    - triton_red_fused_mean_537
+    - triton_red_fused_mean_538
+    - triton_red_fused_mean_539
+    - triton_red_fused_mean_54
+    - triton_red_fused_mean_540
+    - triton_red_fused_mean_541
+    - triton_red_fused_mean_542
+    - triton_red_fused_mean_543
+    - triton_red_fused_mean_544
+    - triton_red_fused_mean_545
+    - triton_red_fused_mean_546
+    - triton_red_fused_mean_547
+    - triton_red_fused_mean_548
+    - triton_red_fused_mean_549
+    - triton_red_fused_mean_55
+    - triton_red_fused_mean_550
+    - triton_red_fused_mean_551
+    - triton_red_fused_mean_552
+    - triton_red_fused_mean_553
+    - triton_red_fused_mean_554
+    - triton_red_fused_mean_555
+    - triton_red_fused_mean_556
+    - triton_red_fused_mean_557
+    - triton_red_fused_mean_558
+    - triton_red_fused_mean_559
+    - triton_red_fused_mean_56
+    - triton_red_fused_mean_560
+    - triton_red_fused_mean_561
+    - triton_red_fused_mean_562
+    - triton_red_fused_mean_563
+    - triton_red_fused_mean_564
+    - triton_red_fused_mean_565
+    - triton_red_fused_mean_566
+    - triton_red_fused_mean_567
+    - triton_red_fused_mean_568
+    - triton_red_fused_mean_569
+    - triton_red_fused_mean_57
+    - triton_red_fused_mean_571
+    - triton_red_fused_mean_573
+    - triton_red_fused_mean_575
+    - triton_red_fused_mean_577
+    - triton_red_fused_mean_58
+    - triton_red_fused_mean_580
+    - triton_red_fused_mean_582
+    - triton_red_fused_mean_584
+    - triton_red_fused_mean_586
+    - triton_red_fused_mean_59
+    - triton_red_fused_mean_6
+    - triton_red_fused_mean_60
+    - triton_red_fused_mean_61
+    - triton_red_fused_mean_62
+    - triton_red_fused_mean_63
+    - triton_red_fused_mean_64
+    - triton_red_fused_mean_65
+    - triton_red_fused_mean_66
+    - triton_red_fused_mean_67
+    - triton_red_fused_mean_68
+    - triton_red_fused_mean_69
+    - triton_red_fused_mean_7
+    - triton_red_fused_mean_70
+    - triton_red_fused_mean_71
+    - triton_red_fused_mean_72
+    - triton_red_fused_mean_73
+    - triton_red_fused_mean_74
+    - triton_red_fused_mean_75
+    - triton_red_fused_mean_76
+    - triton_red_fused_mean_77
+    - triton_red_fused_mean_78
+    - triton_red_fused_mean_79
+    - triton_red_fused_mean_8
+    - triton_red_fused_mean_80
+    - triton_red_fused_mean_81
+    - triton_red_fused_mean_82
+    - triton_red_fused_mean_83
+    - triton_red_fused_mean_84
+    - triton_red_fused_mean_85
+    - triton_red_fused_mean_86
+    - triton_red_fused_mean_87
+    - triton_red_fused_mean_88
+    - triton_red_fused_mean_89
+    - triton_red_fused_mean_9
+    - triton_red_fused_mean_90
+    - triton_red_fused_mean_91
+    - triton_red_fused_mean_92
+    - triton_red_fused_mean_93
+    - triton_red_fused_mean_94
+    - triton_red_fused_mean_95
+    - triton_red_fused_mean_96
+    - triton_red_fused_mean_97
+    - triton_red_fused_mean_98
+    - triton_red_fused_mean_99
     tags:
     - pt2
   torch_compile_nested_tensor_integration:
+    kernels:
+    - triton_red_fused__jagged_to_padded_dense_forward_div_sum_0
     tags:
     - pt2
   torch_jagged_mean_torch_nanmean:
@@ -623,9 +2197,17 @@ jagged_mean:
     - triton
 jagged_softmax:
   torch_compile_jagged_softmax_torch_sum:
+    kernels:
+    - triton_poi_fused__jagged_to_padded_dense_forward__padded_dense_to_jagged_forward__softmax_1
+    - triton_poi_fused__jagged_to_padded_dense_forward__padded_dense_to_jagged_forward__softmax_2
+    - triton_red_fused__jagged_to_padded_dense_forward__softmax_0
     tags:
     - pt2
   torch_compile_nested_tensor_integration:
+    kernels:
+    - triton_poi_fused__jagged_to_padded_dense_forward__padded_dense_to_jagged_forward__softmax_1
+    - triton_poi_fused__jagged_to_padded_dense_forward__padded_dense_to_jagged_forward__softmax_view_2
+    - triton_red_fused__jagged_to_padded_dense_forward__softmax_0
     tags:
     - pt2
   torch_jagged_softmax_torch_sum:
@@ -648,6 +2230,8 @@ jagged_softmax:
     - triton
 jagged_sum:
   torch_compile_nested_tensor_integration:
+    kernels:
+    - triton_red_fused__jagged_to_padded_dense_forward_sum_0
     tags:
     - pt2
   torch_jagged_sum_no_pad:
@@ -683,6 +2267,10 @@ kl_div:
     - liger
     - triton
   torch_compile_kl_div:
+    kernels:
+    - triton_per_fused_div_mul_sub_sum_xlogy_1
+    - triton_red_fused_div_mul_sub_sum_xlogy_1
+    - triton_red_fused_mul_sub_sum_xlogy_0
     tags:
     - pt2
   torch_kl_div:
@@ -710,6 +2298,9 @@ layer_norm:
   quack_layer_norm:
     tags: []
   torch_compile_layer_norm:
+    kernels:
+    - triton_per_fused_native_layer_norm_0
+    - triton_red_fused_native_layer_norm_0
     tags:
     - pt2
   torch_layer_norm:
@@ -738,6 +2329,8 @@ low_mem_dropout:
     tags:
     - triton
   torch_compile_dropout:
+    kernels:
+    - triton_poi_fused__to_copy_div_mul_0
     tags:
     - pt2
   triton_dropout:
@@ -747,6 +2340,12 @@ low_mem_dropout:
     - triton
 mamba2_chunk_scan:
   compile:
+    kernels:
+    - triton_poi_fused_add_mul_4
+    - triton_poi_fused_bmm_1
+    - triton_poi_fused_clone_2
+    - triton_poi_fused_clone_3
+    - triton_poi_fused_mul_0
     tags:
     - pt2
   eager:
@@ -758,6 +2357,9 @@ mamba2_chunk_scan:
     tags: []
 mamba2_chunk_state:
   compile:
+    kernels:
+    - triton_poi_fused_clone_0
+    - triton_poi_fused_clone_1
     tags:
     - pt2
   eager:
@@ -822,6 +2424,9 @@ rms_norm:
     tags:
     - tilelang
   torch_compile_rms:
+    kernels:
+    - triton_per_fused__to_copy_add_mean_mul_pow_rsqrt_0
+    - triton_red_fused__to_copy_add_mean_mul_pow_rsqrt_0
     tags:
     - pt2
   triton_fused_rmsnorm:
@@ -837,6 +2442,11 @@ rope:
     - liger
     - triton
   torch_compile_rotary_pos_emb_full_op:
+    kernels:
+    - triton_poi_fused__to_copy_0
+    - triton_poi_fused__to_copy_cos_mul_sin_1
+    - triton_poi_fused_add_cat_mul_0
+    - triton_poi_fused_add_cat_mul_1
     tags:
     - pt2
 softmax:
@@ -850,6 +2460,9 @@ softmax:
     tags:
     - cutedsl
   torch_compile_softmax:
+    kernels:
+    - triton_per_fused__softmax_0
+    - triton_red_fused__softmax_0
     tags:
     - pt2
   triton_softmax:
@@ -859,6 +2472,10 @@ softmax:
     - triton
 sum:
   torch_compile_sum:
+    kernels:
+    - triton_per_fused_sum_0
+    - triton_per_fused_sum_1
+    - triton_red_fused_sum_0
     tags:
     - pt2
   torch_sum:
@@ -896,6 +2513,8 @@ vector_add:
   torch_add:
     tags: []
   torch_compile_add:
+    kernels:
+    - triton_poi_fused_add_0
     tags:
     - pt2
   triton_add:
@@ -905,6 +2524,8 @@ vector_add:
     - triton
 vector_exp:
   torch_compile_exp:
+    kernels:
+    - triton_poi_fused_exp_0
     tags:
     - pt2
   torch_exp:
